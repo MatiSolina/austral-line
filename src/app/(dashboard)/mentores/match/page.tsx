@@ -124,8 +124,8 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 </div>
                 <form action={pedirSugerencias}>
                   <input type="hidden" name="proyecto_id" value={p.id} />
-                  <BotonEnviar variant="outline" enviando="Pensando…">
-                    {deEste.length ? "Pedir más sugerencias" : "Pedir sugerencias"}
+                  <BotonEnviar enviando="El agente está pensando…">
+                    {deEste.length ? "✨ Pedir más sugerencias" : "✨ Pedir sugerencias al agente"}
                   </BotonEnviar>
                 </form>
               </div>
