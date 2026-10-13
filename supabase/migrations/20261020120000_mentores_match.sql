@@ -1,0 +1,52 @@
+-- MENTORES: perfil de cada mentor + agente de match proyecto–mentor.
+-- El agente solo sugiere (hasta 3 por pedido); el coordinador (admin) acepta o rechaza.
+
+-- Perfil del mentor. Todo opcional y en texto libre: se completa de a poco, como un documento.
+create table mentores_perfiles (
+  persona_id uuid primary key references personas(id) on delete cascade,
+  especialidades text,
+  industrias text,
+  experiencia text,
+  cupo_proyectos int check (cupo_proyectos > 0), -- null = sin límite
+  updated_at timestamptz not null default now()
+);
+
+-- Cada vez que el coordinador le pide sugerencias al agente para un proyecto.
+create table mentores_match_pedidos (
+  id uuid primary key default gen_random_uuid(),
+  proyecto_id uuid not null references proyectos(id) on delete cascade,
+  pedido_por uuid references personas(id) on delete set null,
+  aviso text, -- el agente no encontró un buen match o vio datos raros: lo mira el coordinador
+  created_at timestamptz not null default now()
+);
+
+-- Lo único que escribe el agente. Una sugerencia aceptada = mentor asignado al proyecto.
+create table mentores_sugerencias (
+  id uuid primary key default gen_random_uuid(),
+  pedido_id uuid not null references mentores_match_pedidos(id) on delete cascade,
+  proyecto_id uuid not null references proyectos(id) on delete cascade,
+  mentor_id uuid not null references personas(id) on delete cascade,
+  afinidad int not null check (afinidad between 0 and 100),
+  motivo text not null,
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'aceptada', 'rechazada')),
+  decidido_por uuid references personas(id) on delete set null,
+  decidido_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+-- Perfiles: el admin ve y edita todos; cada mentor solo el suyo.
+alter table mentores_perfiles enable row level security;
+create policy "admin todo" on mentores_perfiles for all to authenticated
+  using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
+create policy "mentor lo suyo" on mentores_perfiles for all to authenticated
+  using (mi_rol() = 'mentor' and persona_id = (select id from personas where lower(email) = lower(auth.jwt() ->> 'email')))
+  with check (mi_rol() = 'mentor' and persona_id = (select id from personas where lower(email) = lower(auth.jwt() ->> 'email')));
+
+-- Pedidos y sugerencias: solo el coordinador (admin).
+alter table mentores_match_pedidos enable row level security;
+create policy "admin todo" on mentores_match_pedidos for all to authenticated
+  using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
+
+alter table mentores_sugerencias enable row level security;
+create policy "admin todo" on mentores_sugerencias for all to authenticated
+  using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
