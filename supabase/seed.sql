@@ -35,3 +35,16 @@ insert into eventos (nombre, tipo, inicio, lugar) values
 
 select pg_temp.crear_login(email) from personas
   where email in ('admin@austral.edu.ar', 'ana@alumnos.austral.edu.ar', 'marta@empresa.com', 'julio@empresa.com');
+
+-- MENTORES: dos mentores más (sin login) y perfiles para probar el match.
+insert into personas (nombre, email, rol) values
+  ('Diego Mentor', 'diego@empresa.com', 'mentor'),
+  ('Lucía Mentora', 'lucia@empresa.com', 'mentor');
+
+insert into mentores_perfiles (persona_id, especialidades, industrias, experiencia, cupo_proyectos)
+select id, v.especialidades, v.industrias, v.experiencia, v.cupo from personas
+join (values
+  ('marta@empresa.com', 'Producto, hardware, operaciones', 'Agro, IoT', '12 años liderando producto en una agtech; armó la red de distribuidores en el interior.', 3),
+  ('diego@empresa.com', 'Finanzas, levantamiento de capital', 'Fintech, SaaS', 'Ex VC. Ayudó a 20 startups a cerrar su primera ronda.', 2),
+  ('lucia@empresa.com', 'Marketing digital, growth', 'Educación, marketplaces', 'Fundó una plataforma de cursos online con 50 mil alumnos.', null)
+) as v(email, especialidades, industrias, experiencia, cupo) using (email);
