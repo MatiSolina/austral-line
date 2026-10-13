@@ -37,6 +37,90 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"mentores_match_pedidos": {
+                  Row: {
+                    "aviso": string | null,"created_at": string,"id": string,"pedido_por": string | null,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id": string
+                  }
+                  Update: {
+                    "aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_match_pedidos_pedido_por_fkey"
+      columns: ["pedido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_match_pedidos_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_perfiles": {
+                  Row: {
+                    "cupo_proyectos": number | null,"especialidades": string | null,"experiencia": string | null,"industrias": string | null,"persona_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"industrias"?: string | null,"persona_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"industrias"?: string | null,"persona_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_perfiles_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_sugerencias": {
+                  Row: {
+                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"motivo": string,"pedido_id": string,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string,"pedido_id": string,"proyecto_id": string
+                  }
+                  Update: {
+                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string,"pedido_id"?: string,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_sugerencias_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_pedido_id_fkey"
+      columns: ["pedido_id"]
+isOneToOne: false
+      referencedRelation: "mentores_match_pedidos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"personas": {
                   Row: {
                     "created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol"]
