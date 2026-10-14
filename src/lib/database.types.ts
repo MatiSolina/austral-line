@@ -23,7 +23,121 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "eventos": {
+            "alumnos_carreras": {
+                  Row: {
+                    "carrera_id": number,"created_at": string,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "carrera_id": number,"created_at"?: string,"persona_id": string
+                  }
+                  Update: {
+                    "carrera_id"?: number,"created_at"?: string,"persona_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_carreras_carrera_id_fkey"
+      columns: ["carrera_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_carreras_maestro"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_carreras_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_carreras_maestro": {
+                  Row: {
+                    "activo": boolean,"created_at": string,"id": number,"nombre": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre": string,"orden"?: number
+                  }
+                  Update: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_intereses": {
+                  Row: {
+                    "estrellas": number,"interes_id": number,"persona_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "estrellas": number,"interes_id": number,"persona_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "estrellas"?: number,"interes_id"?: number,"persona_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_intereses_interes_id_fkey"
+      columns: ["interes_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_intereses_maestro"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_intereses_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_intereses_historial": {
+                  Row: {
+                    "cambiado_en": string,"estrellas_antes": number | null,"estrellas_despues": number | null,"id": number,"interes_id": number,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id": number,"persona_id": string
+                  }
+                  Update: {
+                    "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_intereses_maestro": {
+                  Row: {
+                    "activo": boolean,"created_at": string,"id": number,"nombre": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre": string,"orden"?: number
+                  }
+                  Update: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_perfiles": {
+                  Row: {
+                    "busca_equipo": boolean,"persona_id": string,"sobre_mi": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "busca_equipo"?: boolean,"persona_id": string,"sobre_mi"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "busca_equipo"?: boolean,"persona_id"?: string,"sobre_mi"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_perfiles_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"eventos": {
                   Row: {
                     "created_at": string,"fin": string | null,"id": string,"inicio": string,"lugar": string | null,"nombre": string,"tipo": string
                   }
@@ -229,7 +343,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "mi_rol":
+            "alumnos_guardar_perfil":
+{ Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
+                           },
+"mi_rol":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol"]
                            }
           }

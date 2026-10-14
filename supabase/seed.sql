@@ -78,3 +78,51 @@ insert into personas (nombre, email, rol) values ('Carla Alumna', 'carla@alumnos
 insert into proyecto_integrantes
   select p.id, pe.id from proyectos p, personas pe
   where p.nombre = 'Reciclá' and pe.email = 'carla@alumnos.austral.edu.ar';
+
+-- GRUPO ALUMNOS: alumnos de prueba con perfil, para probar "Compañeros afines".
+-- Logins con contraseña austral123: carla@, diego@ y elena@alumnos.austral.edu.ar. Ana arranca sin perfil.
+-- Carla ya la suma el bloque de Jurado (integrante de Reciclá); acá solo se agrega si falta.
+insert into personas (nombre, email, rol) values
+  ('Carla Alumna', 'carla@alumnos.austral.edu.ar', 'alumno'),
+  ('Diego Alumno', 'diego@alumnos.austral.edu.ar', 'alumno'),
+  ('Elena Alumna', 'elena@alumnos.austral.edu.ar', 'alumno')
+on conflict (email) do nothing;
+
+select pg_temp.crear_login(email) from personas
+  where email in ('carla@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar', 'elena@alumnos.austral.edu.ar');
+
+insert into alumnos_perfiles (persona_id, sobre_mi, busca_equipo)
+select pe.id, v.sobre_mi, v.busca_equipo
+from personas pe join (values
+  ('carla@alumnos.austral.edu.ar', 'Me interesa mejorar el acceso a la salud en el interior.', true),
+  ('diego@alumnos.austral.edu.ar', 'Vengo de una familia de productores, me gustaría algo de agro.', true),
+  ('elena@alumnos.austral.edu.ar', null, true),
+  ('bruno@alumnos.austral.edu.ar', 'Ya estoy en Tutorly.', false)
+) as v(email, sobre_mi, busca_equipo) on v.email = pe.email;
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Marketing'),
+  ('diego@alumnos.austral.edu.ar', 'Agronegocios'),
+  ('elena@alumnos.austral.edu.ar', 'Administración de Empresas'),
+  ('bruno@alumnos.austral.edu.ar', 'Negocios Digitales')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera;
+
+-- Cuánto le interesa a cada uno cada tema (1 a 5 estrellas).
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Salud', 5), ('carla@alumnos.austral.edu.ar', 'Impacto social', 4),
+  ('carla@alumnos.austral.edu.ar', 'Finanzas y fintech', 1), ('carla@alumnos.austral.edu.ar', 'Agro y alimentos', 2),
+  ('diego@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('diego@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 4),
+  ('diego@alumnos.austral.edu.ar', 'Moda y diseño', 1), ('diego@alumnos.austral.edu.ar', 'Educación', 3),
+  ('elena@alumnos.austral.edu.ar', 'Agro y alimentos', 4), ('elena@alumnos.austral.edu.ar', 'Finanzas y fintech', 5),
+  ('elena@alumnos.austral.edu.ar', 'Salud', 1), ('elena@alumnos.austral.edu.ar', 'Consumo y retail', 3),
+  ('bruno@alumnos.austral.edu.ar', 'Educación', 5), ('bruno@alumnos.austral.edu.ar', 'Tecnología y software', 5),
+  ('bruno@alumnos.austral.edu.ar', 'Agro y alimentos', 2), ('bruno@alumnos.austral.edu.ar', 'Salud', 3)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes;
