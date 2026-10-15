@@ -169,6 +169,78 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"jurado_salon_jurados": {
+                  Row: {
+                    "evento_id": string,"jurado_id": string,"salon_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "evento_id": string,"jurado_id": string,"salon_id": string
+                  }
+                  Update: {
+                    "evento_id"?: string,"jurado_id"?: string,"salon_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_salon_jurados_jurado_id_fkey"
+      columns: ["jurado_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_salon_jurados_salon_id_evento_id_fkey"
+      columns: ["salon_id","evento_id"]
+isOneToOne: false
+      referencedRelation: "jurado_salones"
+      referencedColumns: ["id","evento_id"]
+    }
+                  ]
+                },"jurado_salon_proyectos": {
+                  Row: {
+                    "evento_id": string,"proyecto_id": string,"salon_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "evento_id": string,"proyecto_id": string,"salon_id": string
+                  }
+                  Update: {
+                    "evento_id"?: string,"proyecto_id"?: string,"salon_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_salon_proyectos_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_salon_proyectos_salon_id_evento_id_fkey"
+      columns: ["salon_id","evento_id"]
+isOneToOne: false
+      referencedRelation: "jurado_salones"
+      referencedColumns: ["id","evento_id"]
+    }
+                  ]
+                },"jurado_salones": {
+                  Row: {
+                    "created_at": string,"evento_id": string,"id": string,"nombre": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"evento_id": string,"id"?: string,"nombre": string,"orden"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"evento_id"?: string,"id"?: string,"nombre"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_salones_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"personas": {
                   Row: {
                     "created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol"]
@@ -229,7 +301,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "mi_rol":
+            "jurado_guardar_salones":
+{ Args: { "p_evento": string,"p_jurados": Json,"p_proyectos": Json }; Returns: undefined
+                           },
+"mi_rol":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol"]
                            }
           }
