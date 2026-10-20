@@ -278,10 +278,15 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
               {aviso && <p className="mb-4 border-l-2 border-primary pl-3 text-sm">⚠ {aviso}</p>}
 
               {pendientes.length > 0 && (
-                <ul className="divide-y border-t">
+                <>
+                <p className="border-t pt-4 text-sm">
+                  <span className="font-medium">Porcentaje de acierto</span>
+                  <span className="text-xs text-[#666]"> · qué tanto se parece la formación y experiencia del mentor a este proyecto</span>
+                </p>
+                <ul className="divide-y">
                   {pendientes.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-center gap-4 py-4">
-                      <span className="w-14 font-serif text-2xl">{s.afinidad}</span>
+                      <span className="w-20 font-serif text-2xl">{s.afinidad}%</span>
                       <div className="min-w-60 flex-1">
                         <p className="font-medium">{nombre(s.mentor_id)}</p>
                         <p className="text-sm text-[#666]">{s.motivo}</p>
@@ -294,6 +299,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                     </li>
                   ))}
                 </ul>
+                </>
               )}
             </section>
           );
