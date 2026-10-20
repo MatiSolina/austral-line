@@ -23,7 +23,65 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "eventos": {
+            "austral_participaciones": {
+                  Row: {
+                    "actividad": string,"creado_por": string,"created_at": string,"evento_id": string | null,"fecha": string,"id": string,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actividad": string,"creado_por": string,"created_at"?: string,"evento_id"?: string | null,"fecha": string,"id"?: string,"persona_id": string
+                  }
+                  Update: {
+                    "actividad"?: string,"creado_por"?: string,"created_at"?: string,"evento_id"?: string | null,"fecha"?: string,"id"?: string,"persona_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_participaciones_creado_por_fkey"
+      columns: ["creado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_participaciones_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_participaciones_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_propuestas_incentivos": {
+                  Row: {
+                    "alternativa": string,"categoria": string,"creado_por": string,"created_at": string,"estado": string,"fundamento": string,"id": string,"participaciones_consideradas": number,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alternativa": string,"categoria": string,"creado_por": string,"created_at"?: string,"estado"?: string,"fundamento": string,"id"?: string,"participaciones_consideradas": number,"persona_id": string
+                  }
+                  Update: {
+                    "alternativa"?: string,"categoria"?: string,"creado_por"?: string,"created_at"?: string,"estado"?: string,"fundamento"?: string,"id"?: string,"participaciones_consideradas"?: number,"persona_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_propuestas_incentivos_creado_por_fkey"
+      columns: ["creado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_propuestas_incentivos_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"eventos": {
                   Row: {
                     "created_at": string,"fin": string | null,"id": string,"inicio": string,"lugar": string | null,"nombre": string,"tipo": string
                   }
