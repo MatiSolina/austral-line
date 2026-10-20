@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BotonEnviar } from "../_components/boton-enviar";
+import { Estrellas } from "../_components/estrellas";
 import { sugerirMentores } from "./agente";
 
 const fechaCorta = (iso: string) =>
@@ -76,6 +77,28 @@ async function decidir(formData: FormData) {
   redirect(minutos_ahorrados === null ? "/mentores/match" : `/mentores/match?ok=${encodeURIComponent(`Mentor asignado. Se ahorraron ${duracion(minutos_ahorrados)} frente a buscarlo a mano.`)}`);
 }
 
+async function calificar(formData: FormData) {
+  "use server";
+  const coordinador = await requireRol();
+  const estrellas = Number(formData.get("satisfaccion"));
+  if (!Number.isInteger(estrellas) || estrellas < 1 || estrellas > 5) conError("Elegí de 1 a 5 estrellas para calificar el match.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mentores_sugerencias")
+    .update({
+      satisfaccion: estrellas,
+      opinion: String(formData.get("opinion") ?? "").trim() || null,
+      calificado_por: coordinador.id,
+      calificado_at: new Date().toISOString(),
+    })
+    .eq("id", String(formData.get("id")))
+    .in("estado", ["aceptada", "quitada"]);
+  if (error) throw error;
+  revalidatePath("/mentores/match");
+  redirect("/mentores/match");
+}
+
 async function quitar(formData: FormData) {
   "use server";
   const coordinador = await requireRol();
@@ -133,11 +156,13 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
   // Una quitada también fue aceptada en su momento.
   const aceptadas = decididas.filter((s) => s.estado === "aceptada" || s.estado === "quitada");
   const quitadas = decididas.filter((s) => s.estado === "quitada");
+  const calificadas = aceptadas.filter((s) => s.satisfaccion !== null);
   const conMentor = new Set(decididas.filter((s) => s.estado === "aceptada").map((s) => s.proyecto_id));
   const metricas = [
     ["Sugerencias aceptadas", pct(aceptadas.length, decididas.length)],
     ["Hubo que cambiar mentor", pct(quitadas.length, aceptadas.length)],
     ["Tiempo ahorrado", duracion(aceptadas.reduce((total, s) => total + (s.minutos_ahorrados ?? 0), 0))],
+    ["Satisfacción", calificadas.length ? `★ ${(calificadas.reduce((t, s) => t + s.satisfaccion!, 0) / calificadas.length).toFixed(1)}` : "—"],
     ["Pedidos al agente", pedidos.data!.length],
     ["Proyectos con mentor", `${conMentor.size} de ${proyectos.data!.length}`],
   ];
@@ -171,7 +196,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         </section>
       )}
 
-      <div className="mb-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="mb-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {metricas.map(([label, valor]) => (
           <Card key={label}>
             <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
@@ -202,7 +227,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 <form action={pedirSugerencias}>
                   <input type="hidden" name="proyecto_id" value={p.id} />
                   <BotonEnviar enviando="El agente está pensando…">
-                    {deEste.length ? "✨ Pedir más sugerencias" : "✨ Pedir sugerencias al agente"}
+                    {deEste.length ? "Pedir más sugerencias" : "Pedir sugerencias al agente"}
                   </BotonEnviar>
                 </form>
               </div>
@@ -218,6 +243,19 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                         <span className="text-xs text-[#666]">⏱ se ahorraron {duracion(s.minutos_ahorrados)}</span>
                       )}
                       <details className="text-[#666]">
+                        <summary className="cursor-pointer hover:text-primary">
+                          {s.satisfaccion ? <span className="text-primary">{"★".repeat(s.satisfaccion)}{"☆".repeat(5 - s.satisfaccion)}</span> : "★ Calificar"}
+                        </summary>
+                        <form action={calificar} className="mt-2 grid w-80 gap-2">
+                          <input type="hidden" name="id" value={s.id} />
+                          <p className="text-xs">¿Cómo funcionó este match?</p>
+                          <Estrellas name="satisfaccion" inicial={s.satisfaccion} />
+                          <textarea name="opinion" rows={3} defaultValue={s.opinion ?? ""} placeholder="Tu opinión (opcional)"
+                            className="border bg-background px-3 py-2 text-sm text-primary outline-none focus-visible:border-ring" />
+                          <BotonEnviar size="sm" enviando="Guardando…">{s.satisfaccion ? "Guardar cambios" : "Guardar calificación"}</BotonEnviar>
+                        </form>
+                      </details>
+                      <details className="text-[#666]">
                         <summary className="cursor-pointer hover:text-primary">Quitar</summary>
                         <form action={quitar} className="mt-2 grid w-80 gap-2">
                           <input type="hidden" name="id" value={s.id} />
@@ -226,6 +264,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                           <BotonEnviar size="sm" variant="destructive" enviando="Quitando…">Confirmar: quitar mentor</BotonEnviar>
                         </form>
                       </details>
+                      {s.opinion && <p className="w-full text-xs text-[#666]">“{s.opinion}”</p>}
                     </li>
                   ))}
                 </ul>

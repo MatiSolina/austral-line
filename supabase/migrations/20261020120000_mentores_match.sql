@@ -39,6 +39,10 @@ create table mentores_sugerencias (
   quitado_at timestamptz,
   motivo_quitado text,
   minutos_ahorrados int, -- al aceptar: tiempo de buscarlo a mano (60 min) menos lo que tardó con el agente
+  satisfaccion int check (satisfaccion between 1 and 5), -- estrellas que pone el coordinador al match
+  opinion text,
+  calificado_por uuid references personas(id) on delete set null,
+  calificado_at timestamptz,
   created_at timestamptz not null default now()
 );
 

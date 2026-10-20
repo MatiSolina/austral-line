@@ -223,17 +223,23 @@ isOneToOne: true
                   ]
                 },"mentores_sugerencias": {
                   Row: {
-                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"minutos_ahorrados": number | null,"motivo": string,"motivo_quitado": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null
+                    "afinidad": number,"calificado_at": string | null,"calificado_por": string | null,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"minutos_ahorrados": number | null,"motivo": string,"motivo_quitado": string | null,"opinion": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null,"satisfaccion": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"minutos_ahorrados"?: number | null,"motivo": string,"motivo_quitado"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null
+                    "afinidad": number,"calificado_at"?: string | null,"calificado_por"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"minutos_ahorrados"?: number | null,"motivo": string,"motivo_quitado"?: string | null,"opinion"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null,"satisfaccion"?: number | null
                   }
                   Update: {
-                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"minutos_ahorrados"?: number | null,"motivo"?: string,"motivo_quitado"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null
+                    "afinidad"?: number,"calificado_at"?: string | null,"calificado_por"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"minutos_ahorrados"?: number | null,"motivo"?: string,"motivo_quitado"?: string | null,"opinion"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null,"satisfaccion"?: number | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "mentores_sugerencias_calificado_por_fkey"
+      columns: ["calificado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_sugerencias_decidido_por_fkey"
       columns: ["decidido_por"]
 isOneToOne: false
