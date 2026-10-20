@@ -42,7 +42,8 @@ Tu trabajo es SUGERIR mentores para un proyecto; la decisión final la toma el c
 Reglas:
 - Sugerí como máximo ${MAX_SUGERENCIAS} mentores, ordenados de mejor a peor match. Menos está bien si no hay buenos candidatos.
 - Usá solo los mentores de la lista y su id exacto. No inventes datos que no estén en los perfiles.
-- No sugieras mentores sin cupo disponible.
+- Todos los mentores de la lista tienen lugar libre.
+- El "aviso" lo lee el coordinador: escribilo en lenguaje simple, sin nombres de campos ni datos técnicos.
 - Tené en cuenta los matches anteriores: si el coordinador ya rechazó a un mentor para este proyecto, no lo vuelvas a sugerir salvo que sea claramente el mejor.
 - Si a un mentor ya lo quitaron de otros proyectos, tenelo en cuenta y mencionalo en el motivo si lo sugerís.
 - La afinidad (0 a 100) es qué tan bien encaja la experiencia del mentor con lo que necesita el proyecto.
@@ -64,8 +65,14 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
     historial.data!.filter((s) => s.proyecto_id === proyectoId && s.estado !== "rechazada").map((s) => s.mentor_id),
   );
 
-  const candidatos = mentores.data!
-    .filter((m) => !excluidos.has(m.id))
+  const sinLugar = (mentorId: string) => {
+    const cupo = perfiles.data!.find((p) => p.persona_id === mentorId)?.cupo_proyectos ?? null;
+    return cupo !== null && asignados(mentorId) >= cupo;
+  };
+
+  // Los que no tienen lugar ni se le muestran al agente.
+  const conLugar = mentores.data!
+    .filter((m) => !excluidos.has(m.id) && !sinLugar(m.id))
     .map((m) => {
       const perfil = perfiles.data!.find((p) => p.persona_id === m.id);
       const cupo = perfil?.cupo_proyectos ?? null;
@@ -75,8 +82,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
         especialidades: perfil?.especialidades || "(sin completar)",
         industrias: perfil?.industrias || "(sin completar)",
         experiencia: perfil?.experiencia || "(sin completar)",
-        cupo: cupo === null ? "sin límite" : `${asignados(m.id)} de ${cupo} proyectos`,
-        sin_cupo: cupo !== null && asignados(m.id) >= cupo,
+        lugares_libres: cupo === null ? "sin límite" : `le quedan ${Math.max(0, cupo - asignados(m.id))} de ${cupo}`,
         rechazado_antes_para_este_proyecto: historial.data!.some(
           (s) => s.proyecto_id === proyectoId && s.mentor_id === m.id && s.estado === "rechazada",
         ),
@@ -86,24 +92,26 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
       };
     });
 
-  if (candidatos.length === 0) {
-    return { sugerencias: [], aviso: "No quedan mentores para sugerir: todos ya están asignados o sugeridos para este proyecto, o no hay mentores cargados." };
+  if (conLugar.length === 0) {
+    return { sugerencias: [], aviso: "No quedan mentores para sugerir: los que hay ya están asignados, sugeridos o descartados para este proyecto, o no tienen lugar libre." };
   }
 
   const { output } = await generateText({
     model: "anthropic/claude-sonnet-5.5",
     instructions: instrucciones,
     output: Output.object({ schema }),
-    prompt: JSON.stringify({ proyecto: proyecto.data, mentores: candidatos }, null, 2),
+    prompt: JSON.stringify({ proyecto: proyecto.data, mentores: conLugar }, null, 2),
   });
 
   // Nunca confiar ciegamente en la IA: solo ids válidos, sin repetir, con cupo y como máximo 3.
-  const validos = new Map(candidatos.filter((c) => !c.sin_cupo).map((c) => [c.id, c]));
+  const validos = new Set(conLugar.map((c) => c.id));
   const vistos = new Set<string>();
   const sugerencias = output.sugerencias
     .filter((s) => validos.has(s.mentor_id) && !vistos.has(s.mentor_id) && vistos.add(s.mentor_id))
     .slice(0, MAX_SUGERENCIAS)
     .map((s) => ({ ...s, afinidad: Math.max(0, Math.min(100, Math.round(s.afinidad))) }));
 
-  return { sugerencias, aviso: output.aviso.trim() || null };
+  // Si no quedó ninguna sugerencia, siempre es una alerta para el coordinador.
+  const aviso = output.aviso.trim() || (sugerencias.length === 0 ? "El agente no encontró ningún mentor que encaje con este proyecto." : null);
+  return { sugerencias, aviso };
 }

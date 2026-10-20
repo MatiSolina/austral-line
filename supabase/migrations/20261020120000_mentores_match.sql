@@ -16,7 +16,9 @@ create table mentores_match_pedidos (
   id uuid primary key default gen_random_uuid(),
   proyecto_id uuid not null references proyectos(id) on delete cascade,
   pedido_por uuid references personas(id) on delete set null,
-  aviso text, -- el agente no encontró un buen match o vio datos raros: lo mira el coordinador
+  aviso text, -- el agente no encontró un buen match o vio datos raros: alerta para el coordinador
+  alerta_revisada_at timestamptz, -- null = alerta sin revisar
+  alerta_revisada_por uuid references personas(id) on delete set null,
   created_at timestamptz not null default now()
 );
 

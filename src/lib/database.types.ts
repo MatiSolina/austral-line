@@ -171,17 +171,23 @@ isOneToOne: false
                   ]
                 },"mentores_match_pedidos": {
                   Row: {
-                    "aviso": string | null,"created_at": string,"id": string,"pedido_por": string | null,"proyecto_id": string
+                    "alerta_revisada_at": string | null,"alerta_revisada_por": string | null,"aviso": string | null,"created_at": string,"id": string,"pedido_por": string | null,"proyecto_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id": string
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id": string
                   }
                   Update: {
-                    "aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id"?: string
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "mentores_match_pedidos_alerta_revisada_por_fkey"
+      columns: ["alerta_revisada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "mentores_match_pedidos_pedido_por_fkey"
       columns: ["pedido_por"]
 isOneToOne: false

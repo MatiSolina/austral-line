@@ -9,12 +9,15 @@ export default async function Mentores() {
   const { persona } = await getUsuario();
   const supabase = await createClient();
   // Cada mentor ve solo su perfil; el admin ve todos (lo controla la base).
-  const [personas, perfiles, asignaciones] = await Promise.all([
+  const [personas, perfiles, asignaciones, alertas] = await Promise.all([
     supabase.from("personas").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfiles").select("persona_id, especialidades, cupo_proyectos"),
     supabase.from("mentores_sugerencias").select("mentor_id").eq("estado", "aceptada"),
+    // Solo el admin las recibe (la base no le devuelve nada a un mentor).
+    supabase.from("mentores_match_pedidos").select("id", { count: "exact", head: true })
+      .not("aviso", "is", null).is("alerta_revisada_at", null),
   ]);
-  for (const r of [personas, perfiles, asignaciones]) if (r.error) throw r.error;
+  for (const r of [personas, perfiles, asignaciones, alertas]) if (r.error) throw r.error;
   const esAdmin = persona?.rol === "admin";
 
   return (
@@ -24,6 +27,11 @@ export default async function Mentores() {
         {persona?.rol === "mentor" && <Link href="/mentores/perfil" className={buttonVariants()}>Mi perfil</Link>}
         {esAdmin && <Link href="/mentores/match" className={buttonVariants()}>Match de proyectos</Link>}
       </div>
+      {esAdmin && !!alertas.count && (
+        <Link href="/mentores/match#alertas" className="mb-6 block border border-primary p-4 text-sm hover:bg-card">
+          ⚠ Tenés {alertas.count} {alertas.count === 1 ? "alerta" : "alertas"} del Match sin revisar → <span className="underline underline-offset-4">Ver alertas</span>
+        </Link>
+      )}
       <Table>
         <TableHeader>
           <TableRow>

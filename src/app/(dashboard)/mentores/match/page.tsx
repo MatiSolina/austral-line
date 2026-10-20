@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BotonEnviar } from "../_components/boton-enviar";
 import { sugerirMentores } from "./agente";
 
+const fechaCorta = (iso: string) =>
+  new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 const conError = (mensaje: string) => redirect(`/mentores/match?error=${encodeURIComponent(mensaje)}`);
 
 async function pedirSugerencias(formData: FormData) {
@@ -78,6 +80,20 @@ async function quitar(formData: FormData) {
   redirect("/mentores/match");
 }
 
+async function marcarRevisada(formData: FormData) {
+  "use server";
+  const coordinador = await requireRol();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mentores_match_pedidos")
+    .update({ alerta_revisada_at: new Date().toISOString(), alerta_revisada_por: coordinador.id })
+    .eq("id", String(formData.get("id")));
+  if (error) throw error;
+  revalidatePath("/mentores/match");
+  revalidatePath("/mentores");
+  redirect("/mentores/match");
+}
+
 async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">, "searchParams">) {
   const { error } = await searchParams;
   return error && <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>;
@@ -90,10 +106,12 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
     supabase.from("proyectos").select("id, nombre, descripcion, estado").order("nombre"),
     supabase.from("personas").select("id, nombre").eq("rol", "mentor"),
     supabase.from("mentores_sugerencias").select("*").order("afinidad", { ascending: false }),
-    supabase.from("mentores_match_pedidos").select("proyecto_id, aviso, created_at").order("created_at", { ascending: false }),
+    supabase.from("mentores_match_pedidos").select("id, proyecto_id, aviso, alerta_revisada_at, created_at").order("created_at", { ascending: false }),
   ]);
   for (const r of [proyectos, mentores, sugerencias, pedidos]) if (r.error) throw r.error;
 
+  const nombreProyecto = (id: string) => proyectos.data!.find((p) => p.id === id)?.nombre ?? "Proyecto";
+  const alertas = pedidos.data!.filter((x) => x.aviso && !x.alerta_revisada_at);
   const nombre = (id: string) => mentores.data!.find((m) => m.id === id)?.nombre ?? "Mentor dado de baja";
   const pct = (parte: number, total: number) => (total ? `${Math.round((parte / total) * 100)}%` : "—");
   const decididas = sugerencias.data!.filter((s) => s.estado !== "pendiente");
@@ -116,6 +134,26 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         sugerencias: nadie queda asignado hasta que lo aceptás.
       </p>
       <Suspense><MensajeError searchParams={searchParams} /></Suspense>
+
+      {alertas.length > 0 && (
+        <section id="alertas" className="mb-10 border border-primary p-6">
+          <h2 className="mb-4 font-serif text-lg">⚠ Alertas del Match sin revisar ({alertas.length})</h2>
+          <ul className="divide-y">
+            {alertas.map((a) => (
+              <li key={a.id} className="flex flex-wrap items-start justify-between gap-4 py-3">
+                <div className="max-w-2xl text-sm">
+                  <p className="font-medium">{nombreProyecto(a.proyecto_id)} · <span className="font-normal text-[#666]">{fechaCorta(a.created_at)}</span></p>
+                  <p className="text-[#666]">{a.aviso}</p>
+                </div>
+                <form action={marcarRevisada}>
+                  <input type="hidden" name="id" value={a.id} />
+                  <BotonEnviar size="sm" variant="outline" enviando="…">Marcar como revisada</BotonEnviar>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metricas.map(([label, valor]) => (
