@@ -169,6 +169,46 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"mentores_perfil": {
+                  Row: {
+                    "anios_experiencia": number | null,"areas_ayuda": string | null,"bio": string | null,"cargo": string | null,"created_at": string,"ediciones_post_publicacion": number,"empresa": string | null,"estado": string,"industria": string | null,"iniciado_at": string,"linkedin_url": string | null,"persona_id": string,"publicado_at": string | null,"texto_original": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "anios_experiencia"?: number | null,"areas_ayuda"?: string | null,"bio"?: string | null,"cargo"?: string | null,"created_at"?: string,"ediciones_post_publicacion"?: number,"empresa"?: string | null,"estado"?: string,"industria"?: string | null,"iniciado_at"?: string,"linkedin_url"?: string | null,"persona_id": string,"publicado_at"?: string | null,"texto_original"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "anios_experiencia"?: number | null,"areas_ayuda"?: string | null,"bio"?: string | null,"cargo"?: string | null,"created_at"?: string,"ediciones_post_publicacion"?: number,"empresa"?: string | null,"estado"?: string,"industria"?: string | null,"iniciado_at"?: string,"linkedin_url"?: string | null,"persona_id"?: string,"publicado_at"?: string | null,"texto_original"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_perfil_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_perfil_eventos": {
+                  Row: {
+                    "created_at": string,"detalle": Json | null,"id": string,"persona_id": string,"revisado": boolean,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"detalle"?: Json | null,"id"?: string,"persona_id": string,"revisado"?: boolean,"tipo": string
+                  }
+                  Update: {
+                    "created_at"?: string,"detalle"?: Json | null,"id"?: string,"persona_id"?: string,"revisado"?: boolean,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_perfil_eventos_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"personas": {
                   Row: {
                     "created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol"]
