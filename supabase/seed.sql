@@ -84,10 +84,10 @@ insert into personas (nombre, email, rol) values
   ('Diego Mentor', 'diego@empresa.com', 'mentor'),
   ('Lucía Mentora', 'lucia@empresa.com', 'mentor');
 
-insert into mentores_perfiles (persona_id, especialidades, industrias, experiencia, cupo_proyectos)
-select id, v.especialidades, v.industrias, v.experiencia, v.cupo from personas
+insert into mentores_perfiles (persona_id, formacion, especialidades, industrias, experiencia, cupo_proyectos)
+select id, v.formacion, v.especialidades, v.industrias, v.experiencia, v.cupo from personas
 join (values
-  ('marta@empresa.com', 'Producto, hardware, operaciones', 'Agro, IoT', '12 años liderando producto en una agtech; armó la red de distribuidores en el interior.', 3),
-  ('diego@empresa.com', 'Finanzas, levantamiento de capital', 'Fintech, SaaS', 'Ex VC. Ayudó a 20 startups a cerrar su primera ronda.', 2),
-  ('lucia@empresa.com', 'Marketing digital, growth', 'Educación, marketplaces', 'Fundó una plataforma de cursos online con 50 mil alumnos.', null)
-) as v(email, especialidades, industrias, experiencia, cupo) using (email);
+  ('marta@empresa.com', 'Ingeniera agrónoma (UBA)', 'Producto, hardware, operaciones', 'Agro, IoT', '12 años liderando producto en una agtech; armó la red de distribuidores en el interior.', 3),
+  ('diego@empresa.com', 'Licenciado en Economía, MBA (IAE)', 'Finanzas, levantamiento de capital', 'Fintech, SaaS', 'Ex VC. Ayudó a 20 startups a cerrar su primera ronda.', 2),
+  ('lucia@empresa.com', 'Licenciada en Ciencias de la Educación', 'Marketing digital, growth', 'Educación, marketplaces', 'Fundó una plataforma de cursos online con 50 mil alumnos.', null)
+) as v(email, formacion, especialidades, industrias, experiencia, cupo) using (email);

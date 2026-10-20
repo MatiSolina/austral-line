@@ -11,6 +11,10 @@ import { sugerirMentores } from "./agente";
 
 const fechaCorta = (iso: string) =>
   new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+// Cuánto tardaba el coordinador en encontrar un mentor a mano (dato del grupo).
+const MINUTOS_A_MANO = 60;
+const duracion = (min: number) =>
+  min < 60 ? `${min} min` : `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ""}`;
 const conError = (mensaje: string) => redirect(`/mentores/match?error=${encodeURIComponent(mensaje)}`);
 
 async function pedirSugerencias(formData: FormData) {
@@ -51,15 +55,25 @@ async function decidir(formData: FormData) {
   if (estado !== "aceptada" && estado !== "rechazada") conError("Decisión inválida");
 
   const supabase = await createClient();
+  const id = String(formData.get("id"));
+  const ahora = new Date();
+  // Tiempo ahorrado: buscarlo a mano (60 min) menos lo que tardó desde que pidió sugerencias hasta aceptar.
+  let minutos_ahorrados: number | null = null;
+  if (estado === "aceptada") {
+    const { data } = await supabase.from("mentores_sugerencias").select("pedido_id").eq("id", id).single();
+    const { data: pedido } = await supabase.from("mentores_match_pedidos").select("created_at").eq("id", data?.pedido_id ?? "").single();
+    const tardo = pedido ? (ahora.getTime() - Date.parse(pedido.created_at)) / 6e4 : MINUTOS_A_MANO;
+    minutos_ahorrados = Math.max(0, Math.round(MINUTOS_A_MANO - tardo));
+  }
   const { error } = await supabase
     .from("mentores_sugerencias")
-    .update({ estado, decidido_por: coordinador.id, decidido_at: new Date().toISOString() })
-    .eq("id", String(formData.get("id")))
+    .update({ estado, decidido_por: coordinador.id, decidido_at: ahora.toISOString(), minutos_ahorrados })
+    .eq("id", id)
     .eq("estado", "pendiente");
   if (error) throw error;
   revalidatePath("/mentores/match");
   revalidatePath("/mentores");
-  redirect("/mentores/match");
+  redirect(minutos_ahorrados === null ? "/mentores/match" : `/mentores/match?ok=${encodeURIComponent(`Mentor asignado. Se ahorraron ${duracion(minutos_ahorrados)} frente a buscarlo a mano.`)}`);
 }
 
 async function quitar(formData: FormData) {
@@ -95,8 +109,9 @@ async function marcarRevisada(formData: FormData) {
 }
 
 async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">, "searchParams">) {
-  const { error } = await searchParams;
-  return error && <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>;
+  const { error, ok } = await searchParams;
+  if (error) return <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>;
+  if (ok) return <p className="mb-6 border p-3 text-sm">⏱ {ok}</p>;
 }
 
 export default async function Match({ searchParams }: PageProps<"/mentores/match">) {
@@ -122,6 +137,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
   const metricas = [
     ["Sugerencias aceptadas", pct(aceptadas.length, decididas.length)],
     ["Hubo que cambiar mentor", pct(quitadas.length, aceptadas.length)],
+    ["Tiempo ahorrado", duracion(aceptadas.reduce((total, s) => total + (s.minutos_ahorrados ?? 0), 0))],
     ["Pedidos al agente", pedidos.data!.length],
     ["Proyectos con mentor", `${conMentor.size} de ${proyectos.data!.length}`],
   ];
@@ -155,7 +171,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         </section>
       )}
 
-      <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {metricas.map(([label, valor]) => (
           <Card key={label}>
             <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
@@ -198,6 +214,9 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                   {asignados.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-start gap-3">
                       <span className="font-medium">{nombre(s.mentor_id)}</span>
+                      {s.minutos_ahorrados !== null && (
+                        <span className="text-xs text-[#666]">⏱ se ahorraron {duracion(s.minutos_ahorrados)}</span>
+                      )}
                       <details className="text-[#666]">
                         <summary className="cursor-pointer hover:text-primary">Quitar</summary>
                         <form action={quitar} className="mt-2 grid w-80 gap-2">

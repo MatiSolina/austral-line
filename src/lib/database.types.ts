@@ -203,14 +203,14 @@ isOneToOne: false
                   ]
                 },"mentores_perfiles": {
                   Row: {
-                    "cupo_proyectos": number | null,"especialidades": string | null,"experiencia": string | null,"industrias": string | null,"persona_id": string,"updated_at": string
+                    "cupo_proyectos": number | null,"especialidades": string | null,"experiencia": string | null,"formacion": string | null,"industrias": string | null,"persona_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"industrias"?: string | null,"persona_id": string,"updated_at"?: string
+                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"formacion"?: string | null,"industrias"?: string | null,"persona_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"industrias"?: string | null,"persona_id"?: string,"updated_at"?: string
+                    "cupo_proyectos"?: number | null,"especialidades"?: string | null,"experiencia"?: string | null,"formacion"?: string | null,"industrias"?: string | null,"persona_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -223,14 +223,14 @@ isOneToOne: true
                   ]
                 },"mentores_sugerencias": {
                   Row: {
-                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"motivo": string,"motivo_quitado": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null
+                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"minutos_ahorrados": number | null,"motivo": string,"motivo_quitado": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string,"motivo_quitado"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null
+                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"minutos_ahorrados"?: number | null,"motivo": string,"motivo_quitado"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null
                   }
                   Update: {
-                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string,"motivo_quitado"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null
+                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"minutos_ahorrados"?: number | null,"motivo"?: string,"motivo_quitado"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null
                   }
                   Relationships: [
                     {

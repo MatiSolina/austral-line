@@ -18,6 +18,7 @@ async function guardarPerfil(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.from("mentores_perfiles").upsert({
     persona_id: persona.id,
+    formacion: texto(formData, "formacion"),
     especialidades: texto(formData, "especialidades"),
     industrias: texto(formData, "industrias"),
     experiencia: texto(formData, "experiencia"),
@@ -30,6 +31,7 @@ async function guardarPerfil(formData: FormData) {
 }
 
 const campos = [
+  { name: "formacion", label: "Formación", ayuda: "Qué estudiaste: carrera, posgrados, cursos. Ej: Ingeniería Industrial (UTN), MBA.", filas: 2 },
   { name: "especialidades", label: "Especialidades", ayuda: "En qué podés ayudar. Ej: producto, finanzas, ventas, tecnología.", filas: 2 },
   { name: "industrias", label: "Industrias", ayuda: "Rubros que conocés. Ej: agro, educación, fintech, salud.", filas: 2 },
   { name: "experiencia", label: "Experiencia", ayuda: "Tu trayectoria, contada como quieras.", filas: 8 },

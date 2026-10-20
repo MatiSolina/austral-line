@@ -22,7 +22,7 @@ const schema = jsonSchema<{ sugerencias: Sugerencia[]; aviso: string }>({
         properties: {
           mentor_id: { type: "string", description: "id exacto de la lista de mentores" },
           afinidad: { type: "integer", minimum: 0, maximum: 100 },
-          motivo: { type: "string", description: "1 o 2 oraciones: por qué este mentor le sirve a este proyecto" },
+          motivo: { type: "string", description: "1 o 2 oraciones: qué de su formación o experiencia se parece al proyecto" },
         },
         required: ["mentor_id", "afinidad", "motivo"],
         additionalProperties: false,
@@ -39,6 +39,12 @@ const schema = jsonSchema<{ sugerencias: Sugerencia[]; aviso: string }>({
 
 const instrucciones = `Sos el asistente de match proyecto–mentor del concurso de Emprendimientos de la Universidad Austral.
 Tu trabajo es SUGERIR mentores para un proyecto; la decisión final la toma el coordinador.
+Cómo comparar:
+- Lo central es la similitud entre lo que hace el proyecto y lo que el mentor ESTUDIÓ (formación) y A LO QUE SE DEDICÓ (experiencia).
+  Las especialidades y las industrias ayudan a confirmar, pero pesan menos.
+- La afinidad (0 a 100) mide esa similitud: alta si su formación o su trabajo están en el mismo campo que el proyecto,
+  baja si solo podría ayudar en algo general (por ejemplo, finanzas para cualquier startup).
+- En el "motivo" nombrá concretamente qué de su formación o experiencia se parece al proyecto.
 Reglas:
 - Sugerí como máximo ${MAX_SUGERENCIAS} mentores, ordenados de mejor a peor match. Menos está bien si no hay buenos candidatos.
 - Usá solo los mentores de la lista y su id exacto. No inventes datos que no estén en los perfiles.
@@ -46,7 +52,6 @@ Reglas:
 - El "aviso" lo lee el coordinador: escribilo en lenguaje simple, sin nombres de campos ni datos técnicos.
 - Tené en cuenta los matches anteriores: si el coordinador ya rechazó a un mentor para este proyecto, no lo vuelvas a sugerir salvo que sea claramente el mejor.
 - Si a un mentor ya lo quitaron de otros proyectos, tenelo en cuenta y mencionalo en el motivo si lo sugerís.
-- La afinidad (0 a 100) es qué tan bien encaja la experiencia del mentor con lo que necesita el proyecto.
 - Si ningún mentor encaja bien, si el proyecto casi no tiene descripción o si ves datos raros, explicalo en "aviso". Respondé en español.`;
 
 export async function sugerirMentores(supabase: Supabase, proyectoId: string): Promise<Resultado> {
@@ -79,6 +84,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
       return {
         id: m.id,
         nombre: m.nombre,
+        formacion: perfil?.formacion || "(sin completar)",
         especialidades: perfil?.especialidades || "(sin completar)",
         industrias: perfil?.industrias || "(sin completar)",
         experiencia: perfil?.experiencia || "(sin completar)",

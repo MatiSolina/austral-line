@@ -4,6 +4,7 @@
 -- Perfil del mentor. Todo opcional y en texto libre: se completa de a poco, como un documento.
 create table mentores_perfiles (
   persona_id uuid primary key references personas(id) on delete cascade,
+  formacion text, -- qué estudió: carrera, posgrados, cursos
   especialidades text,
   industrias text,
   experiencia text,
@@ -37,6 +38,7 @@ create table mentores_sugerencias (
   quitado_por uuid references personas(id) on delete set null,
   quitado_at timestamptz,
   motivo_quitado text,
+  minutos_ahorrados int, -- al aceptar: tiempo de buscarlo a mano (60 min) menos lo que tardó con el agente
   created_at timestamptz not null default now()
 );
 
