@@ -21,6 +21,7 @@ create table mentores_match_pedidos (
 );
 
 -- Lo único que escribe el agente. Una sugerencia aceptada = mentor asignado al proyecto.
+-- 'quitada' = estuvo asignado y el coordinador lo sacó después (métrica "hubo que cambiar mentor").
 create table mentores_sugerencias (
   id uuid primary key default gen_random_uuid(),
   pedido_id uuid not null references mentores_match_pedidos(id) on delete cascade,
@@ -28,9 +29,12 @@ create table mentores_sugerencias (
   mentor_id uuid not null references personas(id) on delete cascade,
   afinidad int not null check (afinidad between 0 and 100),
   motivo text not null,
-  estado text not null default 'pendiente' check (estado in ('pendiente', 'aceptada', 'rechazada')),
+  estado text not null default 'pendiente' check (estado in ('pendiente', 'aceptada', 'rechazada', 'quitada')),
   decidido_por uuid references personas(id) on delete set null,
   decidido_at timestamptz,
+  quitado_por uuid references personas(id) on delete set null,
+  quitado_at timestamptz,
+  motivo_quitado text,
   created_at timestamptz not null default now()
 );
 

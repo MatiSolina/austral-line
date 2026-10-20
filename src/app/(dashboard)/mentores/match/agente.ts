@@ -44,6 +44,7 @@ Reglas:
 - Usá solo los mentores de la lista y su id exacto. No inventes datos que no estén en los perfiles.
 - No sugieras mentores sin cupo disponible.
 - Tené en cuenta los matches anteriores: si el coordinador ya rechazó a un mentor para este proyecto, no lo vuelvas a sugerir salvo que sea claramente el mejor.
+- Si a un mentor ya lo quitaron de otros proyectos, tenelo en cuenta y mencionalo en el motivo si lo sugerís.
 - La afinidad (0 a 100) es qué tan bien encaja la experiencia del mentor con lo que necesita el proyecto.
 - Si ningún mentor encaja bien, si el proyecto casi no tiene descripción o si ves datos raros, explicalo en "aviso". Respondé en español.`;
 
@@ -58,7 +59,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
 
   const asignados = (mentorId: string) =>
     historial.data!.filter((s) => s.mentor_id === mentorId && s.estado === "aceptada").length;
-  // Ya asignados o con una sugerencia esperando decisión: pedir de nuevo trae otras opciones.
+  // Ya asignados, quitados de este proyecto o esperando decisión: pedir de nuevo trae otras opciones.
   const excluidos = new Set(
     historial.data!.filter((s) => s.proyecto_id === proyectoId && s.estado !== "rechazada").map((s) => s.mentor_id),
   );
@@ -79,6 +80,9 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
         rechazado_antes_para_este_proyecto: historial.data!.some(
           (s) => s.proyecto_id === proyectoId && s.mentor_id === m.id && s.estado === "rechazada",
         ),
+        veces_que_lo_quitaron_de_otros_proyectos: historial.data!.filter(
+          (s) => s.mentor_id === m.id && s.estado === "quitada",
+        ).length,
       };
     });
 

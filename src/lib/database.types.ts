@@ -217,14 +217,14 @@ isOneToOne: true
                   ]
                 },"mentores_sugerencias": {
                   Row: {
-                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"motivo": string,"pedido_id": string,"proyecto_id": string
+                    "afinidad": number,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"motivo": string,"motivo_quitado": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string,"pedido_id": string,"proyecto_id": string
+                    "afinidad": number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string,"motivo_quitado"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null
                   }
                   Update: {
-                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string,"pedido_id"?: string,"proyecto_id"?: string
+                    "afinidad"?: number,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string,"motivo_quitado"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null
                   }
                   Relationships: [
                     {
@@ -250,6 +250,12 @@ isOneToOne: false
       columns: ["proyecto_id"]
 isOneToOne: false
       referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_quitado_por_fkey"
+      columns: ["quitado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
       referencedColumns: ["id"]
     }
                   ]

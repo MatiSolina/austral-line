@@ -60,6 +60,24 @@ async function decidir(formData: FormData) {
   redirect("/mentores/match");
 }
 
+async function quitar(formData: FormData) {
+  "use server";
+  const coordinador = await requireRol();
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (motivo.length < 5) conError("Para quitar un mentor hace falta contar el motivo.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mentores_sugerencias")
+    .update({ estado: "quitada", quitado_por: coordinador.id, quitado_at: new Date().toISOString(), motivo_quitado: motivo })
+    .eq("id", String(formData.get("id")))
+    .eq("estado", "aceptada");
+  if (error) throw error;
+  revalidatePath("/mentores/match");
+  revalidatePath("/mentores");
+  redirect("/mentores/match");
+}
+
 async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">, "searchParams">) {
   const { error } = await searchParams;
   return error && <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>;
@@ -77,11 +95,15 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
   for (const r of [proyectos, mentores, sugerencias, pedidos]) if (r.error) throw r.error;
 
   const nombre = (id: string) => mentores.data!.find((m) => m.id === id)?.nombre ?? "Mentor dado de baja";
+  const pct = (parte: number, total: number) => (total ? `${Math.round((parte / total) * 100)}%` : "—");
   const decididas = sugerencias.data!.filter((s) => s.estado !== "pendiente");
-  const aceptadas = decididas.filter((s) => s.estado === "aceptada");
-  const conMentor = new Set(aceptadas.map((s) => s.proyecto_id));
+  // Una quitada también fue aceptada en su momento.
+  const aceptadas = decididas.filter((s) => s.estado === "aceptada" || s.estado === "quitada");
+  const quitadas = decididas.filter((s) => s.estado === "quitada");
+  const conMentor = new Set(decididas.filter((s) => s.estado === "aceptada").map((s) => s.proyecto_id));
   const metricas = [
-    ["Sugerencias aceptadas", decididas.length ? `${Math.round((aceptadas.length / decididas.length) * 100)}%` : "—"],
+    ["Sugerencias aceptadas", pct(aceptadas.length, decididas.length)],
+    ["Hubo que cambiar mentor", pct(quitadas.length, aceptadas.length)],
     ["Pedidos al agente", pedidos.data!.length],
     ["Proyectos con mentor", `${conMentor.size} de ${proyectos.data!.length}`],
   ];
@@ -95,7 +117,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
       </p>
       <Suspense><MensajeError searchParams={searchParams} /></Suspense>
 
-      <div className="mb-10 grid gap-4 sm:grid-cols-3">
+      <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metricas.map(([label, valor]) => (
           <Card key={label}>
             <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
@@ -110,6 +132,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         {proyectos.data!.map((p) => {
           const deEste = sugerencias.data!.filter((s) => s.proyecto_id === p.id);
           const asignados = deEste.filter((s) => s.estado === "aceptada");
+          const anteriores = deEste.filter((s) => s.estado === "quitada");
           const pendientes = deEste.filter((s) => s.estado === "pendiente");
           const aviso = pedidos.data!.find((x) => x.proyecto_id === p.id)?.aviso;
           return (
@@ -130,10 +153,31 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 </form>
               </div>
 
-              <p className="mb-4 text-sm">
+              <div className="mb-4 text-sm">
                 <span className="text-[#666]">Mentores: </span>
-                {asignados.length ? asignados.map((s) => nombre(s.mentor_id)).join(", ") : "ninguno todavía"}
-              </p>
+                {asignados.length === 0 && "ninguno todavía"}
+                <ul className="mt-2 grid gap-2">
+                  {asignados.map((s) => (
+                    <li key={s.id} className="flex flex-wrap items-start gap-3">
+                      <span className="font-medium">{nombre(s.mentor_id)}</span>
+                      <details className="text-[#666]">
+                        <summary className="cursor-pointer hover:text-primary">Quitar</summary>
+                        <form action={quitar} className="mt-2 grid w-80 gap-2">
+                          <input type="hidden" name="id" value={s.id} />
+                          <textarea name="motivo" required minLength={5} rows={2} placeholder="¿Por qué se quita? (obligatorio)"
+                            className="border bg-background px-3 py-2 text-sm text-primary outline-none focus-visible:border-ring" />
+                          <BotonEnviar size="sm" variant="destructive" enviando="Quitando…">Confirmar: quitar mentor</BotonEnviar>
+                        </form>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+                {anteriores.length > 0 && (
+                  <p className="mt-3 text-xs text-[#666]">
+                    Mentores anteriores: {anteriores.map((s) => `${nombre(s.mentor_id)} (${s.motivo_quitado})`).join(" · ")}
+                  </p>
+                )}
+              </div>
 
               {aviso && <p className="mb-4 border-l-2 border-primary pl-3 text-sm">⚠ {aviso}</p>}
 
