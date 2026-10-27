@@ -1,12 +1,12 @@
 // GRUPO MENTORES — vista de un perfil puntual. La usa el admin para auditar lo que cargó un
 // mentor (desde la tabla de /mentores); un mentor que entra a su propio id ve lo mismo que en
-// /mentores/perfil, pero sin poder editar. El acceso a perfiles ajenos lo filtra directo la RLS.
+// /mentores/perfil-publico, pero sin poder editar. El acceso a perfiles ajenos lo filtra directo la RLS.
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
-import { VistaPreviaPerfil } from "../perfil/_components/vista-previa";
+import { VistaPreviaPerfil } from "../perfil-publico/_components/vista-previa";
 
 const estadoLabel: Record<string, string> = { borrador: "Borrador — todavía no lo ven los alumnos", publicado: "Publicado" };
 

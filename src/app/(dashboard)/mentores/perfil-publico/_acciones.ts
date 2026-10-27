@@ -61,7 +61,7 @@ export async function organizar(textoOriginal: string): Promise<ResultadoOrganiz
     .eq("persona_id", persona.id);
   if (error) throw error;
 
-  revalidatePath("/mentores/perfil");
+  revalidatePath("/mentores/perfil-publico");
   return resultado;
 }
 
@@ -84,7 +84,7 @@ export async function guardarCambios(camposAceptados: Partial<PropuestaPerfil>) 
   if (error) throw error;
 
   await registrarEvento(supabase, [{ tipo: "guardado_borrador", detalle: { campos: Object.keys(camposAceptados) } }], persona.id);
-  revalidatePath("/mentores/perfil");
+  revalidatePath("/mentores/perfil-publico");
   revalidatePath("/mentores");
 }
 
@@ -118,7 +118,7 @@ export async function publicar() {
   if (error) throw error;
 
   await registrarEvento(supabase, [{ tipo: "publicado" }], persona.id);
-  revalidatePath("/mentores/perfil");
+  revalidatePath("/mentores/perfil-publico");
   revalidatePath("/mentores");
   return { errores: [] };
 }

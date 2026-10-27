@@ -43,7 +43,7 @@ export default async function Mentores() {
               {miPerfil?.estado === "publicado" ? "Publicado" : "Todavía no lo completaste"}
             </Badge>
           </div>
-          <Link href="/mentores/perfil" className={buttonVariants({ size: "lg" })}>
+          <Link href="/mentores/perfil-publico" className={buttonVariants({ size: "lg" })}>
             {miPerfil ? "Editar perfil" : "Cargar perfil"}
           </Link>
         </Card>
