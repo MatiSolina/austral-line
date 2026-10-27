@@ -36,9 +36,25 @@ create table mentores_perfil_eventos (
 alter table mentores_perfil enable row level security;
 create policy "admin lee" on mentores_perfil for select to authenticated
   using (mi_rol() = 'admin');
+-- Así te van a ver los alumnos cuando elijan mentor: solo lo que ya está publicado.
+create policy "alumno lee publicados" on mentores_perfil for select to authenticated
+  using (mi_rol() = 'alumno' and estado = 'publicado');
 create policy "mentor lo suyo" on mentores_perfil for all to authenticated
   using (mi_rol() = 'mentor' and persona_id = (select id from personas where email = auth.jwt() ->> 'email'))
   with check (mi_rol() = 'mentor' and persona_id = (select id from personas where email = auth.jwt() ->> 'email'));
+-- La Server Action valida esto antes de publicar, pero esa validación vive en la app: sin esto el
+-- mentor podría llamar a la API de Supabase directo y publicar saltándose la revisión de spam.
+-- Policy restrictive: se suma (con AND) a las permissive de arriba, no alcanza con pasar esas.
+create policy "no publicar con spam sin revisar (insert)" on mentores_perfil as restrictive for insert to authenticated
+  with check (estado <> 'publicado' or not exists (
+    select 1 from mentores_perfil_eventos e
+    where e.persona_id = mentores_perfil.persona_id and e.tipo = 'marcado_spam' and e.revisado = false
+  ));
+create policy "no publicar con spam sin revisar (update)" on mentores_perfil as restrictive for update to authenticated
+  with check (estado <> 'publicado' or not exists (
+    select 1 from mentores_perfil_eventos e
+    where e.persona_id = mentores_perfil.persona_id and e.tipo = 'marcado_spam' and e.revisado = false
+  ));
 
 alter table mentores_perfil_eventos enable row level security;
 create policy "admin lee" on mentores_perfil_eventos for select to authenticated

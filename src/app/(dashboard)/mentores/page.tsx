@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { ArrowRight, BadgeCheck, Clock, Hourglass, Sparkles, TriangleAlert } from "lucide-react";
-import { getUsuario } from "@/lib/auth";
+import { getUsuario, requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,13 +21,15 @@ async function marcarRevisado(formData: FormData) {
 }
 
 export default async function Mentores() {
-  const { persona } = await getUsuario();
-  if (persona?.rol === "admin") return <PanelAdmin />;
+  // Propio, no solo del layout: la sección Mentores va a dejar entrar alumnos para otra pantalla
+  // (PR #18), así que esta página tiene que seguir bloqueando a quien no sea mentor o admin.
+  const persona = await requireRol("mentor");
+  if (persona.rol === "admin") return <PanelAdmin />;
 
   const supabase = await createClient();
   const [{ data: personas, error }, { data: miPerfil }] = await Promise.all([
     supabase.from("personas").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
-    persona ? supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle(),
   ]);
   if (error) throw error;
 
@@ -35,19 +37,17 @@ export default async function Mentores() {
     <>
       <h1 className="mb-6 font-serif text-2xl">Mentores</h1>
 
-      {persona?.rol === "mentor" && (
-        <Card className="mb-8 flex-row flex-wrap items-center justify-between gap-4 px-5">
-          <div className="grid gap-1.5">
-            <p className="text-sm text-[#666]">Tu perfil</p>
-            <Badge variant={miPerfil?.estado === "publicado" ? "default" : "outline"} className="w-fit">
-              {miPerfil?.estado === "publicado" ? "Publicado" : "Todavía no lo completaste"}
-            </Badge>
-          </div>
-          <Link href="/mentores/perfil-publico" className={buttonVariants({ size: "lg" })}>
-            {miPerfil ? "Editar perfil" : "Cargar perfil"}
-          </Link>
-        </Card>
-      )}
+      <Card className="mb-8 flex-row flex-wrap items-center justify-between gap-4 px-5">
+        <div className="grid gap-1.5">
+          <p className="text-sm text-[#666]">Tu perfil</p>
+          <Badge variant={miPerfil?.estado === "publicado" ? "default" : "outline"} className="w-fit">
+            {miPerfil?.estado === "publicado" ? "Publicado" : "Todavía no lo completaste"}
+          </Badge>
+        </div>
+        <Link href="/mentores/perfil-publico" className={buttonVariants({ size: "lg" })}>
+          {miPerfil ? "Editar perfil" : "Cargar perfil"}
+        </Link>
+      </Card>
 
       <Table>
         <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead></TableRow></TableHeader>

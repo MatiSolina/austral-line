@@ -20,6 +20,11 @@ export const camposObligatorios = ["bio", "areas_ayuda"] as const satisfies (key
 
 export const esLinkedin = (link: string | null) => !!link && /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\//i.test(link);
 
+// Mensaje fijo que tira organizar() si falta AI_GATEWAY_API_KEY: el cliente lo compara para
+// mostrar el cartel de "cargá a mano" en vez de un error genérico. Vive acá (no en _acciones.ts)
+// porque un archivo "use server" solo puede exportar funciones async.
+export const SIN_CLAVE_IA = "SIN_CLAVE_IA";
+
 export function erroresParaPublicar(perfil: Pick<PerfilMentor, (typeof camposObligatorios)[number]>) {
   return camposObligatorios.filter((campo) => !perfil[campo]?.trim());
 }

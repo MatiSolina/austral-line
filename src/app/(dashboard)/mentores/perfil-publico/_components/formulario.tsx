@@ -2,12 +2,14 @@
 // GRUPO MENTORES — UI de carga de perfil. El mentor escribe libre, la IA propone una
 // organización en campos, y el mentor confirma campo por campo antes de guardar: si ya había
 // un valor cargado, el default es "mantener" (nunca se pisa sin que él elija lo contrario).
+// Si no hay IA configurada (falta AI_GATEWAY_API_KEY), hay un modo manual de respaldo.
 import { useState, useTransition } from "react";
 import { Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { camposPerfil, type PerfilMentor } from "../../_lib";
+import { camposPerfil, SIN_CLAVE_IA, type PerfilMentor } from "../../_lib";
 import { guardarCambios, organizar, publicar } from "../_acciones";
 import type { PropuestaPerfil, ResultadoOrganizar } from "../_ia";
 import { VistaPreviaPerfil } from "./vista-previa";
@@ -19,10 +21,18 @@ function asignar<K extends Campo>(destino: Partial<PropuestaPerfil>, campo: K, v
   destino[campo] = valor;
 }
 
+function valoresIniciales(perfil: PerfilMentor | null): PropuestaPerfil {
+  const base = {} as PropuestaPerfil;
+  for (const { campo } of camposPerfil) asignar(base, campo, (perfil?.[campo] ?? null) as never);
+  return base;
+}
+
 export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | null; nombre: string }) {
   const [texto, setTexto] = useState(perfil?.texto_original ?? "");
   const [propuesta, setPropuesta] = useState<ResultadoOrganizar | null>(null);
   const [elecciones, setElecciones] = useState<Partial<Record<Campo, "actual" | "nuevo">>>({});
+  const [modoManual, setModoManual] = useState(false);
+  const [manual, setManual] = useState<PropuestaPerfil>(() => valoresIniciales(perfil));
   const [errores, setErrores] = useState<string[]>([]);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [accion, setAccion] = useState<Accion | null>(null);
@@ -47,8 +57,13 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
           nuevasElecciones[campo] = actual ? "actual" : "nuevo";
         }
         setElecciones(nuevasElecciones);
-      } catch {
-        setErrores(["No se pudo organizar el texto. Probá de nuevo en un momento."]);
+      } catch (e) {
+        if (e instanceof Error && e.message === SIN_CLAVE_IA) {
+          setModoManual(true);
+          setMensaje("El asistente de IA todavía no está configurado en este entorno. Mientras tanto, cargá los datos acá abajo.");
+        } else {
+          setErrores(["No se pudo organizar el texto. Probá de nuevo en un momento."]);
+        }
       }
     });
   }
@@ -59,7 +74,9 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
     setAccion(publicarDespues ? "publicar" : "borrador");
     iniciarTransicion(async () => {
       try {
-        if (propuesta) {
+        if (modoManual) {
+          await guardarCambios(manual);
+        } else if (propuesta) {
           const aceptados: Partial<PropuestaPerfil> = {};
           for (const { campo } of camposPerfil) {
             if (elecciones[campo] === "nuevo") asignar(aceptados, campo, propuesta.propuesta[campo]);
@@ -72,7 +89,7 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
           if (resultado.errores.length > 0) setErrores(resultado.errores);
           else setMensaje("¡Perfil publicado! Ya lo pueden ver los alumnos.");
         } else {
-          setMensaje("Borrador guardado. Podés volver cuando quieras a terminarlo.");
+          setMensaje((m) => m ?? "Borrador guardado. Podés volver cuando quieras a terminarlo.");
         }
       } catch {
         setErrores(["No se pudo guardar. Probá de nuevo en un momento."]);
@@ -88,27 +105,32 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
         </p>
       )}
 
-      <div className="grid gap-2">
-        <Label htmlFor="texto">Contanos sobre vos, en tus palabras</Label>
-        <p className="text-sm text-[#666]">
-          Empresa, cargo, industria, años de experiencia, en qué podés ayudar a los alumnos y tu LinkedIn si tenés.
-          El agente lo organiza por vos; no hace falta llenar un formulario.
-        </p>
-        <textarea
-          id="texto"
-          rows={6}
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Ej: trabajo en una fintech como líder de producto, 8 años de experiencia, puedo ayudar con pricing y validación..."
-          className="w-full rounded-lg border border-input bg-transparent p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-        />
-        <div>
-          <Button type="button" variant="outline" onClick={onOrganizar} disabled={pendiente || !texto.trim()}>
-            {enCurso("organizar") ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {enCurso("organizar") ? "Organizando…" : "Organizar con IA"}
-          </Button>
+      {!modoManual && (
+        <div className="grid gap-2">
+          <Label htmlFor="texto">Contanos sobre vos, en tus palabras</Label>
+          <p className="text-sm text-[#666]">
+            Empresa, cargo, industria, años de experiencia, en qué podés ayudar a los alumnos y tu LinkedIn si tenés.
+            El agente lo organiza por vos; no hace falta llenar un formulario.
+          </p>
+          <textarea
+            id="texto"
+            rows={6}
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            placeholder="Ej: trabajo en una fintech como líder de producto, 8 años de experiencia, puedo ayudar con pricing y validación..."
+            className="w-full rounded-lg border border-input bg-transparent p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="button" variant="outline" onClick={onOrganizar} disabled={pendiente || !texto.trim()}>
+              {enCurso("organizar") ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              {enCurso("organizar") ? "Organizando…" : "Organizar con IA"}
+            </Button>
+            <button type="button" onClick={() => setModoManual(true)} className="text-sm text-[#666] hover:text-primary">
+              o cargalo a mano
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {propuesta?.advertenciaSpam && (
         <p className="flex items-start gap-2 border-l-2 border-destructive pl-4 text-sm text-destructive">
@@ -172,7 +194,46 @@ export function FormularioPerfil({ perfil, nombre }: { perfil: PerfilMentor | nu
         </div>
       )}
 
-      {!propuesta && perfil && (perfil.empresa || perfil.cargo || perfil.bio || perfil.areas_ayuda) && (
+      {modoManual && (
+        <div className="grid gap-6 border bg-card p-5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm text-[#666]">Cargá los datos directamente, sin el asistente de IA.</p>
+            <button type="button" onClick={() => setModoManual(false)} className="text-sm text-[#666] hover:text-primary">
+              Volver al asistente
+            </button>
+          </div>
+          {camposPerfil.map(({ campo, label, largo }) => (
+            <div key={campo} className="grid gap-2">
+              <Label htmlFor={`manual-${campo}`}>{label}</Label>
+              {largo ? (
+                <textarea
+                  id={`manual-${campo}`}
+                  rows={3}
+                  value={(manual[campo] as string | null) ?? ""}
+                  onChange={(e) => setManual((m) => ({ ...m, [campo]: e.target.value || null }))}
+                  className="w-full rounded-lg border border-input bg-transparent p-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                />
+              ) : (
+                <Input
+                  id={`manual-${campo}`}
+                  type={campo === "anios_experiencia" ? "number" : "text"}
+                  value={manual[campo] ?? ""}
+                  onChange={(e) => {
+                    const valor = campo === "anios_experiencia" ? (e.target.value ? Number(e.target.value) : null) : e.target.value || null;
+                    setManual((m) => {
+                      const copia = { ...m };
+                      asignar(copia, campo, valor as never);
+                      return copia;
+                    });
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!propuesta && !modoManual && perfil && (perfil.empresa || perfil.cargo || perfil.bio || perfil.areas_ayuda) && (
         <div className="grid gap-1">
           <p className="text-sm text-[#666]">Vista previa — así te ve un alumno hoy</p>
           <VistaPreviaPerfil perfil={perfil} nombre={nombre} />

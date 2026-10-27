@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
-import { camposPerfil, erroresParaPublicar } from "../_lib";
+import { camposPerfil, erroresParaPublicar, SIN_CLAVE_IA } from "../_lib";
 import { organizarPerfilConIA, type PropuestaPerfil, type ResultadoOrganizar } from "./_ia";
 
 type Evento = Database["public"]["Tables"]["mentores_perfil_eventos"]["Insert"];
@@ -42,6 +42,8 @@ async function asegurarBorrador(supabase: Awaited<ReturnType<typeof createClient
 }
 
 export async function organizar(textoOriginal: string): Promise<ResultadoOrganizar> {
+  if (!process.env.AI_GATEWAY_API_KEY) throw new Error(SIN_CLAVE_IA);
+
   const { supabase, persona } = await clienteYPersona();
   const texto = textoOriginal.trim();
   if (!texto) throw new Error("Escribí algo sobre vos primero.");
@@ -65,23 +67,29 @@ export async function organizar(textoOriginal: string): Promise<ResultadoOrganiz
   return resultado;
 }
 
-// El mentor eligió, campo por campo, qué valores de la propuesta de la IA aceptar; lo que no
-// aceptó mantiene el valor que ya tenía (nunca se pisa sin que él elija reemplazarlo).
+// El mentor eligió, campo por campo, qué valores aceptar (de la propuesta de la IA, o escritos a
+// mano en el modo sin IA); lo que no aceptó mantiene el valor que ya tenía (nunca se pisa sin que
+// él elija reemplazarlo). Crea el borrador si hace falta: el modo manual no pasa por organizar().
 export async function guardarCambios(camposAceptados: Partial<PropuestaPerfil>) {
   const { supabase, persona } = await clienteYPersona();
 
   const { data: actual, error: errorActual } = await supabase
     .from("mentores_perfil").select("estado, ediciones_post_publicacion").eq("persona_id", persona.id).maybeSingle();
   if (errorActual) throw errorActual;
-  if (!actual) throw new Error("Todavía no empezaste a cargar tu perfil.");
 
-  const yaEstabaPublicado = actual.estado === "publicado";
-  const { error } = await supabase.from("mentores_perfil").update({
-    ...camposAceptados,
-    updated_at: new Date().toISOString(),
-    ...(yaEstabaPublicado ? { ediciones_post_publicacion: actual.ediciones_post_publicacion + 1 } : {}),
-  }).eq("persona_id", persona.id);
-  if (error) throw error;
+  if (!actual) {
+    const { error } = await supabase.from("mentores_perfil").insert({ persona_id: persona.id, ...camposAceptados });
+    if (error) throw error;
+    await registrarEvento(supabase, [{ tipo: "inicio" }], persona.id);
+  } else {
+    const yaEstabaPublicado = actual.estado === "publicado";
+    const { error } = await supabase.from("mentores_perfil").update({
+      ...camposAceptados,
+      updated_at: new Date().toISOString(),
+      ...(yaEstabaPublicado ? { ediciones_post_publicacion: actual.ediciones_post_publicacion + 1 } : {}),
+    }).eq("persona_id", persona.id);
+    if (error) throw error;
+  }
 
   await registrarEvento(supabase, [{ tipo: "guardado_borrador", detalle: { campos: Object.keys(camposAceptados) } }], persona.id);
   revalidatePath("/mentores/perfil-publico");
