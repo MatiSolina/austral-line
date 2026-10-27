@@ -1,4 +1,4 @@
-import { CalendarDays, Gavel, GraduationCap, Handshake, LayoutGrid, Users } from "lucide-react";
+import { CalendarDays, Gavel, GraduationCap, Handshake, LayoutGrid, Users, ContactRound } from "lucide-react";
 import type { Database } from "@/lib/database.types";
 
 export type Rol = Database["public"]["Enums"]["rol"];
@@ -19,6 +19,7 @@ export const secciones = [
   { href: "/mentores", label: "Mentores", icon: Handshake, roles: ["mentor"] },
   { href: "/jurado", label: "Jurado", icon: Gavel, roles: ["jurado"] },
   { href: "/austral", label: "Austral", icon: CalendarDays, roles: [] },
+  { href: "/austral/contacto-mentores", label: "Contactos de mentores", icon: ContactRound, roles: ["alumno", "mentor"] },
   { href: "/miembros", label: "Miembros", icon: Users, roles: [] },
 ] satisfies { href: string; label: string; icon: unknown; roles: Rol[] }[];
 
