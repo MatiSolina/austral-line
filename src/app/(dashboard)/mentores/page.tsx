@@ -1,10 +1,12 @@
 // GRUPO MENTORES — esta carpeta es de ustedes.
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { TriangleAlert } from "lucide-react";
 import { getUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 async function marcarRevisado(formData: FormData) {
@@ -33,17 +35,17 @@ export default async function Mentores() {
       <h1 className="mb-6 font-serif text-2xl">Mentores</h1>
 
       {persona?.rol === "mentor" && (
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 border bg-card p-5">
-          <div>
+        <Card className="mb-8 flex-row flex-wrap items-center justify-between gap-4 px-5">
+          <div className="grid gap-1.5">
             <p className="text-sm text-[#666]">Tu perfil</p>
-            <p className="font-serif text-lg">
+            <Badge variant={miPerfil?.estado === "publicado" ? "default" : "outline"} className="w-fit">
               {miPerfil?.estado === "publicado" ? "Publicado" : "Todavía no lo completaste"}
-            </p>
+            </Badge>
           </div>
           <Link href="/mentores/perfil" className={buttonVariants({ size: "lg" })}>
             {miPerfil ? "Editar perfil" : "Cargar perfil"}
           </Link>
-        </div>
+        </Card>
       )}
 
       <Table>
@@ -102,16 +104,18 @@ async function PanelAdmin() {
           { label: "Tiempo prom. de carga", valor: horasPromedioCarga != null ? `${horasPromedioCarga.toFixed(1)} hs` : "—" },
           { label: "Borradores abandonados", valor: `${abandonados.length} / ${perfiles.length}` },
         ].map(({ label, valor }) => (
-          <div key={label} className="border bg-card p-4">
-            <p className="text-sm text-[#666]">{label}</p>
-            <p className="font-serif text-2xl">{valor}</p>
-          </div>
+          <Card key={label}>
+            <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
+            <CardContent className="font-serif text-2xl">{valor}</CardContent>
+          </Card>
         ))}
       </div>
 
       {eventosSpam.length > 0 && (
         <div className="mb-10 border border-destructive/40 bg-destructive/5 p-5">
-          <h2 className="mb-4 font-serif text-lg">Cargas para revisar</h2>
+          <h2 className="mb-4 flex items-center gap-2 font-serif text-lg">
+            <TriangleAlert className="size-5 text-destructive" /> Cargas para revisar
+          </h2>
           <ul className="grid gap-3">
             {eventosSpam.map((e) => (
               <li key={e.id} className="flex items-center justify-between gap-4 text-sm">

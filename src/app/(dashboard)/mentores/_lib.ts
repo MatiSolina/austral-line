@@ -3,16 +3,17 @@ import type { Tables } from "@/lib/database.types";
 
 export type PerfilMentor = Tables<"mentores_perfil">;
 
-// Campos que organiza el agente, en el orden en que se muestran y se confirman.
+// Campos que organiza el agente, en el orden en que se muestran y se confirman. `largo: true`
+// son los que no entran en una grilla corta (se muestran en bloque, de ancho completo).
 export const camposPerfil = [
-  { campo: "empresa", label: "Empresa" },
-  { campo: "cargo", label: "Cargo" },
-  { campo: "industria", label: "Industria" },
-  { campo: "anios_experiencia", label: "Años de experiencia" },
-  { campo: "bio", label: "Sobre vos" },
-  { campo: "areas_ayuda", label: "En qué podés ayudar a los alumnos" },
-  { campo: "linkedin_url", label: "LinkedIn" },
-] as const satisfies { campo: keyof PerfilMentor; label: string }[];
+  { campo: "empresa", label: "Empresa", largo: false },
+  { campo: "cargo", label: "Cargo", largo: false },
+  { campo: "industria", label: "Industria", largo: false },
+  { campo: "anios_experiencia", label: "Años de experiencia", largo: false },
+  { campo: "bio", label: "Sobre vos", largo: true },
+  { campo: "areas_ayuda", label: "En qué podés ayudar a los alumnos", largo: true },
+  { campo: "linkedin_url", label: "LinkedIn", largo: false },
+] as const satisfies { campo: keyof PerfilMentor; label: string; largo: boolean }[];
 
 // Sin estos datos el perfil no dice nada útil a un alumno: hace falta completarlos para publicar.
 export const camposObligatorios = ["bio", "areas_ayuda"] as const satisfies (keyof PerfilMentor)[];

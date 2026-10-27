@@ -3,13 +3,16 @@
 // organización en campos, y el mentor confirma campo por campo antes de guardar: si ya había
 // un valor cargado, el default es "mantener" (nunca se pisa sin que él elija lo contrario).
 import { useState, useTransition } from "react";
+import { Loader2, Sparkles, TriangleAlert, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { camposPerfil, type PerfilMentor } from "../../_lib";
 import { guardarCambios, organizar, publicar } from "../_acciones";
 import type { PropuestaPerfil, ResultadoOrganizar } from "../_ia";
 
 type Campo = (typeof camposPerfil)[number]["campo"];
+type Accion = "organizar" | "borrador" | "publicar";
 
 function asignar<K extends Campo>(destino: Partial<PropuestaPerfil>, campo: K, valor: PropuestaPerfil[K]) {
   destino[campo] = valor;
@@ -21,13 +24,16 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
   const [elecciones, setElecciones] = useState<Partial<Record<Campo, "actual" | "nuevo">>>({});
   const [errores, setErrores] = useState<string[]>([]);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [accion, setAccion] = useState<Accion | null>(null);
   const [pendiente, iniciarTransicion] = useTransition();
 
   const publicado = perfil?.estado === "publicado";
+  const enCurso = (a: Accion) => pendiente && accion === a;
 
   function onOrganizar() {
     setErrores([]);
     setMensaje(null);
+    setAccion("organizar");
     iniciarTransicion(async () => {
       try {
         const resultado = await organizar(texto);
@@ -49,6 +55,7 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
   function onGuardar(publicarDespues: boolean) {
     setErrores([]);
     setMensaje(null);
+    setAccion(publicarDespues ? "publicar" : "borrador");
     iniciarTransicion(async () => {
       try {
         if (propuesta) {
@@ -91,26 +98,34 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
           rows={6}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          className="w-full border bg-transparent p-3 text-sm outline-none focus-visible:border-ring"
+          placeholder="Ej: trabajo en una fintech como líder de producto, 8 años de experiencia, puedo ayudar con pricing y validación..."
+          className="w-full rounded-lg border border-input bg-transparent p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         />
         <div>
           <Button type="button" variant="outline" onClick={onOrganizar} disabled={pendiente || !texto.trim()}>
-            Organizar con IA
+            {enCurso("organizar") ? <Loader2 className="animate-spin" /> : <Sparkles />}
+            {enCurso("organizar") ? "Organizando…" : "Organizar con IA"}
           </Button>
         </div>
       </div>
 
       {propuesta?.advertenciaSpam && (
-        <p className="border-l-2 border-destructive pl-4 text-sm text-destructive">
-          Esto quedó marcado para que lo revise el administrador antes de poder publicarse
-          {propuesta.motivoSpam ? `: ${propuesta.motivoSpam}` : "."}
+        <p className="flex items-start gap-2 border-l-2 border-destructive pl-4 text-sm text-destructive">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <span>
+            Esto quedó marcado para que lo revise el administrador antes de poder publicarse
+            {propuesta.motivoSpam ? `: ${propuesta.motivoSpam}` : "."}
+          </span>
         </p>
       )}
 
       {propuesta && propuesta.correcciones.length > 0 && (
-        <p className="border-l-2 border-primary pl-4 text-sm text-[#666]">
-          El agente ajustó algo solo antes de mostrarte esta propuesta (por ejemplo, {propuesta.correcciones[0].campo}:{" "}
-          {propuesta.correcciones[0].razon}), para no inventar ni guardar datos raros.
+        <p className="flex items-start gap-2 border-l-2 border-primary pl-4 text-sm text-[#666]">
+          <Sparkles className="mt-0.5 size-4 shrink-0" />
+          <span>
+            El agente ajustó algo solo antes de mostrarte esta propuesta (por ejemplo, {propuesta.correcciones[0].campo}:{" "}
+            {propuesta.correcciones[0].razon}), para no inventar ni guardar datos raros.
+          </span>
         </p>
       )}
 
@@ -126,12 +141,22 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
                 <Label>{label}</Label>
                 {actual && nuevo && String(actual) !== String(nuevo) ? (
                   <div className="grid gap-2 sm:grid-cols-2">
-                    <label className="flex cursor-pointer items-start gap-2 border p-2 text-sm">
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-start gap-2 border p-2.5 text-sm transition-colors",
+                        elecciones[campo] !== "nuevo" ? "border-primary bg-muted/50" : "hover:bg-muted/20",
+                      )}
+                    >
                       <input type="radio" name={`eleccion-${campo}`} checked={elecciones[campo] !== "nuevo"}
                         onChange={() => setElecciones((e) => ({ ...e, [campo]: "actual" }))} />
                       <span><span className="text-[#666]">Mantener: </span>{actual}</span>
                     </label>
-                    <label className="flex cursor-pointer items-start gap-2 border p-2 text-sm">
+                    <label
+                      className={cn(
+                        "flex cursor-pointer items-start gap-2 border p-2.5 text-sm transition-colors",
+                        elecciones[campo] === "nuevo" ? "border-primary bg-muted/50" : "hover:bg-muted/20",
+                      )}
+                    >
                       <input type="radio" name={`eleccion-${campo}`} checked={elecciones[campo] === "nuevo"}
                         onChange={() => setElecciones((e) => ({ ...e, [campo]: "nuevo" }))} />
                       <span><span className="text-[#666]">Reemplazar por: </span>{nuevo}</span>
@@ -146,11 +171,32 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
         </div>
       )}
 
-      {!propuesta && perfil && (
-        <div className="grid gap-4 border bg-card p-5">
-          <p className="text-sm text-[#666]">Tu perfil hoy:</p>
-          {camposPerfil.map(({ campo, label }) =>
-            perfil[campo] ? <p key={campo} className="text-sm"><span className="text-[#666]">{label}: </span>{perfil[campo]}</p> : null,
+      {!propuesta && perfil && (perfil.empresa || perfil.cargo || perfil.bio || perfil.areas_ayuda) && (
+        <div className="grid gap-6 border bg-card p-6">
+          <p className="text-sm text-[#666]">Tu perfil hoy</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {camposPerfil.filter(({ campo, largo }) => !largo && campo !== "linkedin_url" && perfil[campo]).map(({ campo, label }) => (
+              <div key={campo} className="grid gap-0.5">
+                <p className="text-xs text-[#666]">{label}</p>
+                <p className="text-sm">{perfil[campo]}</p>
+              </div>
+            ))}
+          </div>
+          {camposPerfil.filter(({ largo, campo }) => largo && perfil[campo]).map(({ campo, label }) => (
+            <div key={campo} className="grid gap-0.5">
+              <p className="text-xs text-[#666]">{label}</p>
+              <p className="text-sm">{perfil[campo]}</p>
+            </div>
+          ))}
+          {perfil.linkedin_url && (
+            <a
+              href={perfil.linkedin_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <Link2 className="size-3.5" /> Ver perfil de LinkedIn
+            </a>
           )}
         </div>
       )}
@@ -163,9 +209,13 @@ export function FormularioPerfil({ perfil }: { perfil: PerfilMentor | null }) {
       {mensaje && <p className="text-sm text-primary">{mensaje}</p>}
 
       <div className="sticky bottom-0 flex justify-end gap-3 border-t bg-background py-4">
-        <Button type="button" variant="outline" onClick={() => onGuardar(false)} disabled={pendiente}>Guardar borrador</Button>
+        <Button type="button" variant="outline" onClick={() => onGuardar(false)} disabled={pendiente}>
+          {enCurso("borrador") && <Loader2 className="animate-spin" />}
+          {enCurso("borrador") ? "Guardando…" : "Guardar borrador"}
+        </Button>
         <Button type="button" size="lg" onClick={() => onGuardar(true)} disabled={pendiente}>
-          {publicado ? "Guardar y actualizar" : "Publicar perfil"}
+          {enCurso("publicar") && <Loader2 className="animate-spin" />}
+          {enCurso("publicar") ? "Guardando…" : publicado ? "Guardar y actualizar" : "Publicar perfil"}
         </Button>
       </div>
     </div>
