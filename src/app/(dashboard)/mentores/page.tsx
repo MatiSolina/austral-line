@@ -1,7 +1,7 @@
 // GRUPO MENTORES — esta carpeta es de ustedes.
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { BadgeCheck, Clock, Hourglass, Sparkles, TriangleAlert } from "lucide-react";
+import { ArrowRight, BadgeCheck, Clock, Hourglass, Sparkles, TriangleAlert } from "lucide-react";
 import { getUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +126,9 @@ async function PanelAdmin() {
             label: "Borradores abandonados",
             valor: `${abandonados.length} / ${perfiles.length}`,
             texto: abandonados.length
-              ? `${abandonados.length} mentor${abandonados.length > 1 ? "es" : ""} empezaron hace más de una semana y no terminaron.`
+              ? abandonados.length > 1
+                ? `${abandonados.length} mentores empezaron hace más de una semana y no terminaron.`
+                : "1 mentor empezó hace más de una semana y no terminó."
               : "Nadie quedó a mitad de camino hace más de una semana.",
             icono: Hourglass,
             atencion: abandonados.length > 0,
@@ -172,17 +174,24 @@ async function PanelAdmin() {
 
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Perfil</TableHead></TableRow>
+          <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Perfil</TableHead><TableHead /></TableRow>
         </TableHeader>
         <TableBody>
           {mentores.map((m) => (
             <TableRow key={m.id}>
-              <TableCell>{m.nombre}</TableCell>
+              <TableCell>
+                <Link href={`/mentores/${m.id}`} className="hover:text-primary hover:underline">{m.nombre}</Link>
+              </TableCell>
               <TableCell>{m.email}</TableCell>
               <TableCell>
                 <Badge variant={m.mentores_perfil?.estado === "publicado" ? "default" : "outline"}>
                   {m.mentores_perfil?.estado === "publicado" ? "Publicado" : m.mentores_perfil ? "Borrador" : "Sin empezar"}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                <Link href={`/mentores/${m.id}`} className="inline-flex items-center gap-1 text-[#666] hover:text-primary">
+                  Ver perfil <ArrowRight className="size-3.5" />
+                </Link>
               </TableCell>
             </TableRow>
           ))}
