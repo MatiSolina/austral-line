@@ -58,7 +58,8 @@ with ev as (
 insert into jurado_puntajes (evaluacion_id, criterio_id, puntaje)
 select ev.id, c.id,
   case when p.nombre = 'AgroSense' then 9 - c.orden + 1 else 4 + c.orden end
-from ev join proyectos p on p.id = ev.proyecto_id cross join jurado_criterios c;
+from ev join proyectos p on p.id = ev.proyecto_id cross join jurado_criterios c
+where not c.es_base; -- las notas de ejemplo usan los criterios originales, no la lista base
 
 -- GRUPO JURADO: ficha de ejemplo para AgroSense (Reciclá queda sin ficha para ver ese caso).
 insert into jurado_fichas (proyecto_id, problema, solucion, propuesta_valor, mercado, modelo_negocio, etapa, traccion, link_presentacion)
@@ -78,6 +79,31 @@ insert into personas (nombre, email, rol) values ('Carla Alumna', 'carla@alumnos
 insert into proyecto_integrantes
   select p.id, pe.id from proyectos p, personas pe
   where p.nombre = 'Reciclá' and pe.email = 'carla@alumnos.austral.edu.ar';
+
+-- GRUPO JURADO: la evaluación de Lucía a Reciclá es del Kickoff (las dos están en el Salón B).
+-- La de AgroSense queda sin evento, como las notas cargadas antes de separar por evento.
+update jurado_evaluaciones set evento_id = (select id from eventos where nombre = 'Kickoff')
+where proyecto_id = (select id from proyectos where nombre = 'Reciclá')
+  and jurado_id = (select id from personas where email = 'lucia@fondo.com');
+
+-- GRUPO JURADO: el Kickoff ya tiene notas, así que queda con los criterios que esas notas usaron (como al migrar datos reales).
+-- El Demo Day no tiene criterios todavía: los recibe de la lista base cuando se le arma el primer salón, o desde Criterios.
+select jurado_criterios_fijar_usados(id) from eventos where nombre = 'Kickoff';
+
+-- GRUPO JURADO: el Kickoff organizado en dos salones (el Demo Day queda sin organizar para ver ese caso).
+insert into jurado_salones (evento_id, nombre, orden)
+select e.id, s.nombre, s.orden from eventos e, (values ('Salón A', 1), ('Salón B', 2)) as s(nombre, orden)
+where e.nombre = 'Kickoff';
+
+insert into jurado_salon_proyectos (evento_id, salon_id, proyecto_id)
+select s.evento_id, s.id, p.id from jurado_salones s
+join (values ('Salón A', 'AgroSense'), ('Salón B', 'Reciclá')) as a(salon, proyecto) on a.salon = s.nombre
+join proyectos p on p.nombre = a.proyecto;
+
+insert into jurado_salon_jurados (evento_id, salon_id, jurado_id)
+select s.evento_id, s.id, pe.id from jurado_salones s
+join (values ('Salón A', 'julio@empresa.com'), ('Salón B', 'lucia@fondo.com')) as a(salon, email) on a.salon = s.nombre
+join personas pe on pe.email = a.email;
 
 -- GRUPO MENTORES: más mentores en distintos estados (publicado prolijo, publicado con
 -- correcciones, borrador abandonado, sin empezar), para que el panel de métricas del admin
