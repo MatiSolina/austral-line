@@ -143,3 +143,65 @@ from personas p where p.email in ('pablo@empresa.com', 'rocio@empresa.com');
 insert into mentores_perfil_eventos (persona_id, tipo, detalle)
 select p.id, 'correccion_ia', jsonb_build_object('campo', 'industria', 'razon', 'no estaba sustentado en lo que escribió; se descartó')
 from personas p where p.email = 'rocio@empresa.com';
+
+-- GRUPO MENTORES: reuniones de Marta para probar el resumen pre-reunión. Una pasada con notas y dos próximas
+-- (la de Tutorly es la primera y no tiene lugar cargado, para ver cómo muestra lo que falta).
+insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar, notas, proximos_pasos)
+select p.id, m.id, now() + v.cuando, v.lugar, v.notas, v.pasos
+from (values
+  ('AgroSense', interval '-8 days', 'https://meet.google.com/abc-defg-hij',
+    'Revisamos el piloto en Maipú: los sensores andan bien, pero los productores no abren la app todos los días.',
+    'Probar alertas por WhatsApp con 2 productores y traer números de uso.'),
+  ('AgroSense', interval '3 days', 'https://meet.google.com/abc-defg-hij', null, null),
+  ('Tutorly', interval '2 days', null, null, null)
+) as v(proyecto, cuando, lugar, notas, pasos)
+join proyectos p on p.nombre = v.proyecto
+join personas m on m.email = 'marta@empresa.com';
+
+-- GRUPO ALUMNOS: alumnos de prueba con perfil, para probar "Compañeros afines".
+-- Logins con contraseña austral123: carla@, diego@ y elena@alumnos.austral.edu.ar. Ana arranca sin perfil.
+-- Carla ya la suma el bloque de Jurado (integrante de Reciclá); acá solo se agrega si falta.
+insert into personas (nombre, email, rol) values
+  ('Carla Alumna', 'carla@alumnos.austral.edu.ar', 'alumno'),
+  ('Diego Alumno', 'diego@alumnos.austral.edu.ar', 'alumno'),
+  ('Elena Alumna', 'elena@alumnos.austral.edu.ar', 'alumno')
+on conflict (email) do nothing;
+
+select pg_temp.crear_login(email) from personas
+  where email in ('carla@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar', 'elena@alumnos.austral.edu.ar');
+
+insert into alumnos_perfiles (persona_id, sobre_mi, busca_equipo)
+select pe.id, v.sobre_mi, v.busca_equipo
+from personas pe join (values
+  ('carla@alumnos.austral.edu.ar', 'Me interesa mejorar el acceso a la salud en el interior.', true),
+  ('diego@alumnos.austral.edu.ar', 'Vengo de una familia de productores, me gustaría algo de agro.', true),
+  ('elena@alumnos.austral.edu.ar', null, true),
+  ('bruno@alumnos.austral.edu.ar', 'Ya estoy en Tutorly.', false)
+) as v(email, sobre_mi, busca_equipo) on v.email = pe.email;
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Marketing'),
+  ('diego@alumnos.austral.edu.ar', 'Agronegocios'),
+  ('elena@alumnos.austral.edu.ar', 'Administración de Empresas'),
+  ('bruno@alumnos.austral.edu.ar', 'Negocios Digitales')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera;
+
+-- Cuánto le interesa a cada uno cada tema (1 a 5 estrellas).
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Salud', 5), ('carla@alumnos.austral.edu.ar', 'Impacto social', 4),
+  ('carla@alumnos.austral.edu.ar', 'Finanzas y fintech', 1), ('carla@alumnos.austral.edu.ar', 'Agro y alimentos', 2),
+  ('diego@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('diego@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 4),
+  ('diego@alumnos.austral.edu.ar', 'Moda y diseño', 1), ('diego@alumnos.austral.edu.ar', 'Educación', 3),
+  ('elena@alumnos.austral.edu.ar', 'Agro y alimentos', 4), ('elena@alumnos.austral.edu.ar', 'Finanzas y fintech', 5),
+  ('elena@alumnos.austral.edu.ar', 'Salud', 1), ('elena@alumnos.austral.edu.ar', 'Consumo y retail', 3),
+  ('bruno@alumnos.austral.edu.ar', 'Educación', 5), ('bruno@alumnos.austral.edu.ar', 'Tecnología y software', 5),
+  ('bruno@alumnos.austral.edu.ar', 'Agro y alimentos', 2), ('bruno@alumnos.austral.edu.ar', 'Salud', 3)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes;

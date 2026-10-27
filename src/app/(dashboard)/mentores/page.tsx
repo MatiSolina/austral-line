@@ -9,6 +9,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { urlBase } from "./reuniones/agente";
+import { pedirFeedback } from "./feedback/agente";
 
 async function marcarRevisado(formData: FormData) {
   "use server";
@@ -20,13 +22,29 @@ async function marcarRevisado(formData: FormData) {
   revalidatePath("/mentores");
 }
 
+const enlace = "text-sm text-[#666] underline underline-offset-4 hover:text-primary";
+
+function EnlacesReuniones({ esAdmin }: { esAdmin: boolean }) {
+  return (
+    <div className="flex flex-wrap gap-6">
+      <Link href="/mentores/reuniones" className={enlace}>Reuniones y resúmenes pre-reunión</Link>
+      {esAdmin
+        ? <Link href="/mentores/feedback" className={enlace}>Feedback de reuniones</Link>
+        : <Link href="/mentores/mi-feedback" className={enlace}>Mi feedback</Link>}
+    </div>
+  );
+}
+
 export default async function Mentores() {
-  // Propio, no solo del layout: la sección Mentores va a dejar entrar alumnos para otra pantalla
+  // Propio, no solo del layout: la sección Mentores deja entrar alumnos para otra pantalla
   // (PR #18), así que esta página tiene que seguir bloqueando a quien no sea mentor o admin.
   const persona = await requireRol("mentor");
+  const supabase = await createClient();
+  // Al entrar, el asistente pide el feedback de las reuniones que ya terminaron.
+  await pedirFeedback(supabase, await urlBase());
+
   if (persona.rol === "admin") return <PanelAdmin />;
 
-  const supabase = await createClient();
   const [{ data: personas, error }, { data: miPerfil }] = await Promise.all([
     supabase.from("personas").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle(),
@@ -35,7 +53,10 @@ export default async function Mentores() {
 
   return (
     <>
-      <h1 className="mb-6 font-serif text-2xl">Mentores</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-serif text-2xl">Mentores</h1>
+        <EnlacesReuniones esAdmin={false} />
+      </div>
 
       <Card className="mb-8 flex-row flex-wrap items-center justify-between gap-4 px-5">
         <div className="grid gap-1.5">
@@ -96,7 +117,10 @@ async function PanelAdmin() {
 
   return (
     <>
-      <h1 className="mb-6 font-serif text-2xl">Mentores</h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="font-serif text-2xl">Mentores</h1>
+        <EnlacesReuniones esAdmin />
+      </div>
 
       <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
