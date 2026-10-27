@@ -26,7 +26,7 @@ export function FormularioMentor({ contacto }: { contacto: Contacto }) {
           <input className={campo} name="industria" defaultValue={contacto?.industria} maxLength={100} placeholder="Ej. Agrotecnología" />
         </label>
         <label className="text-sm">Modalidad
-          <select className={campo} name="modalidad" defaultValue={contacto?.modalidad ?? "consulta"}>
+          <select key={contacto?.modalidad ?? "sin-perfil"} className={campo} name="modalidad" defaultValue={contacto?.modalidad ?? "consulta"}>
             <option value="principal">Mentor principal</option>
             <option value="consulta">Consulta puntual</option>
             <option value="ambas">Ambas</option>
