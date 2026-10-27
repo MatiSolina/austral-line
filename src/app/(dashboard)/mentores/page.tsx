@@ -1,13 +1,14 @@
 // GRUPO MENTORES — esta carpeta es de ustedes.
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { TriangleAlert } from "lucide-react";
+import { BadgeCheck, Clock, Hourglass, Sparkles, TriangleAlert } from "lucide-react";
 import { getUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 async function marcarRevisado(formData: FormData) {
   "use server";
@@ -99,14 +100,49 @@ async function PanelAdmin() {
 
       <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: "Perfiles publicados", valor: `${publicados.length} / ${mentores.length}` },
-          { label: "Quedan bien sin corregir", valor: publicados.length ? `${Math.round((sinCorreccionPosterior.length / publicados.length) * 100)}%` : "—" },
-          { label: "Tiempo prom. de carga", valor: horasPromedioCarga != null ? `${horasPromedioCarga.toFixed(1)} hs` : "—" },
-          { label: "Borradores abandonados", valor: `${abandonados.length} / ${perfiles.length}` },
-        ].map(({ label, valor }) => (
+          {
+            label: "Perfiles publicados",
+            valor: `${publicados.length} / ${mentores.length}`,
+            texto: mentores.length
+              ? `${publicados.length} de ${mentores.length} mentores ya tienen perfil visible para los alumnos.`
+              : "Todavía no hay mentores cargados.",
+            icono: BadgeCheck,
+          },
+          {
+            label: "Quedan bien sin corregir",
+            valor: publicados.length ? `${Math.round((sinCorreccionPosterior.length / publicados.length) * 100)}%` : "—",
+            texto: publicados.length
+              ? "De los perfiles publicados, el resto tuvo que corregir algo después."
+              : "Se calcula una vez que haya perfiles publicados.",
+            icono: Sparkles,
+          },
+          {
+            label: "Tiempo prom. de carga",
+            valor: horasPromedioCarga != null ? `${horasPromedioCarga.toFixed(1)} hs` : "—",
+            texto: "Desde que el mentor empieza a escribir hasta que publica.",
+            icono: Clock,
+          },
+          {
+            label: "Borradores abandonados",
+            valor: `${abandonados.length} / ${perfiles.length}`,
+            texto: abandonados.length
+              ? `${abandonados.length} mentor${abandonados.length > 1 ? "es" : ""} empezaron hace más de una semana y no terminaron.`
+              : "Nadie quedó a mitad de camino hace más de una semana.",
+            icono: Hourglass,
+            atencion: abandonados.length > 0,
+          },
+        ].map(({ label, valor, texto, icono: Icono, atencion }) => (
           <Card key={label}>
-            <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
-            <CardContent className="font-serif text-2xl">{valor}</CardContent>
+            <CardHeader className="flex-row items-center gap-2 space-y-0">
+              <span className={cn("flex size-7 shrink-0 items-center justify-center", atencion ? "bg-destructive/10 text-destructive" : "bg-muted text-[#666]")}>
+                <Icono className="size-4" />
+              </span>
+              <CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-1">
+              <p className="font-serif text-2xl">{valor}</p>
+              <p className="text-xs text-[#666]">{texto}</p>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -153,7 +189,9 @@ async function PanelAdmin() {
         </TableBody>
       </Table>
 
-      <p className="mt-6 text-sm text-[#666]">Autocorrecciones del agente hasta ahora: {autocorrecciones ?? 0}.</p>
+      <p className="mt-6 flex items-center gap-1.5 text-sm text-[#666]">
+        <Sparkles className="size-4" /> El agente hizo {autocorrecciones ?? 0} autocorrecciones hasta ahora (datos que no inventó o links que completó solo).
+      </p>
     </>
   );
 }

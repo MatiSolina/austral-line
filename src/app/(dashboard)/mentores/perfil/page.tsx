@@ -18,7 +18,7 @@ export default async function CargarPerfil() {
     <div className="mx-auto max-w-2xl">
       <h1 className="mb-2 font-serif text-2xl">Tu perfil de mentor</h1>
       <p className="mb-8 text-sm text-[#666]">Así te van a ver los alumnos cuando elijan con quién mentorear su proyecto.</p>
-      <FormularioPerfil perfil={perfil} />
+      <FormularioPerfil perfil={perfil} nombre={persona.nombre} />
     </div>
   );
 }
