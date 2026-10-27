@@ -1,4 +1,4 @@
-import { CalendarDays, Gavel, GraduationCap, Handshake, LayoutGrid, Lightbulb, Users } from "lucide-react";
+import { CalendarDays, Gavel, GraduationCap, Handshake, LayoutGrid, Lightbulb, MessageSquareText, Users } from "lucide-react";
 import type { Database } from "@/lib/database.types";
 
 export type Rol = Database["public"]["Enums"]["rol"];
@@ -18,6 +18,7 @@ export const secciones = [
   { href: "/alumnos", label: "Alumnos y proyectos", icon: GraduationCap, roles: ["alumno"] },
   { href: "/mentores", label: "Mentores", icon: Handshake, roles: ["mentor"] },
   { href: "/jurado", label: "Jurado", icon: Gavel, roles: ["jurado"] },
+  { href: "/jurado/mi-devolucion", label: "Mi devolución", icon: MessageSquareText, roles: ["alumno"] },
   { href: "/austral", label: "Austral", icon: CalendarDays, roles: [] },
   { href: "/austral/incentivos", label: "Incentivos", icon: Lightbulb, roles: [] },
   { href: "/miembros", label: "Miembros", icon: Users, roles: [] },

@@ -80,8 +80,11 @@ export async function generarPropuesta(
   }
 
   const resumen = participaciones.map((p) => `${p.fecha}: ${p.actividad.slice(0, 150)}`).join("\n");
-  let fundamento = `Se consideraron las ${participaciones.length} participaciones más recientes de ${persona.nombre}. ` +
-    `La alternativa "${alternativa}" se presenta para estudio a partir de estas actividades: ${resumen}.`;
+  let fundamento = participaciones.length === 1
+    ? `Se consideró la participación más reciente de ${persona.nombre}. `
+    : `Se consideraron las ${participaciones.length} participaciones más recientes de ${persona.nombre}. `;
+  fundamento += `La alternativa "${alternativa}" se presenta para estudio a partir de ` +
+    `${participaciones.length === 1 ? "esta actividad" : "estas actividades"}: ${resumen}.`;
 
   if (process.env.AI_GATEWAY_API_KEY) {
     try {
