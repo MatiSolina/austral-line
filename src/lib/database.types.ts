@@ -115,6 +115,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"jurado_ausencias": {
+                  Row: {
+                    "evento_id": string,"marcado_at": string,"marcado_por": string | null,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "evento_id": string,"marcado_at"?: string,"marcado_por"?: string | null,"proyecto_id": string
+                  }
+                  Update: {
+                    "evento_id"?: string,"marcado_at"?: string,"marcado_por"?: string | null,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_ausencias_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_ausencias_marcado_por_fkey"
+      columns: ["marcado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_ausencias_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"jurado_criterios": {
                   Row: {
                     "created_at": string,"descripcion": string | null,"id": string,"nombre": string,"orden": number
@@ -128,6 +160,116 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"jurado_devolucion_envios": {
+                  Row: {
+                    "created_at": string,"email": string,"error": string | null,"estado": string,"evento_id": string,"id": string,"persona_id": string | null,"proyecto_id": string,"resend_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"email": string,"error"?: string | null,"estado": string,"evento_id": string,"id"?: string,"persona_id"?: string | null,"proyecto_id": string,"resend_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"email"?: string,"error"?: string | null,"estado"?: string,"evento_id"?: string,"id"?: string,"persona_id"?: string | null,"proyecto_id"?: string,"resend_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_devolucion_envios_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devolucion_envios_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devolucion_envios_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"jurado_devoluciones": {
+                  Row: {
+                    "actualizada_at": string | null,"comentarios": (string)[],"evaluaciones": number,"evento_id": string,"huella": string | null,"motivo_correccion": string | null,"promedio_general": number | null,"promedios": NonNullable<Json>,"propuestas": (string)[],"proyecto_id": string,"revisada_at": string | null,"revisada_por": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizada_at"?: string | null,"comentarios"?: (string)[],"evaluaciones"?: number,"evento_id": string,"huella"?: string | null,"motivo_correccion"?: string | null,"promedio_general"?: number | null,"promedios"?: NonNullable<Json>,"propuestas"?: (string)[],"proyecto_id": string,"revisada_at"?: string | null,"revisada_por"?: string | null
+                  }
+                  Update: {
+                    "actualizada_at"?: string | null,"comentarios"?: (string)[],"evaluaciones"?: number,"evento_id"?: string,"huella"?: string | null,"motivo_correccion"?: string | null,"promedio_general"?: number | null,"promedios"?: NonNullable<Json>,"propuestas"?: (string)[],"proyecto_id"?: string,"revisada_at"?: string | null,"revisada_por"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_devoluciones_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devoluciones_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devoluciones_revisada_por_fkey"
+      columns: ["revisada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"jurado_devoluciones_historial": {
+                  Row: {
+                    "cambiado_at": string,"cambiado_por": string | null,"comentarios": (string)[],"evento_id": string,"id": string,"motivo": string,"propuestas": (string)[],"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cambiado_at"?: string,"cambiado_por"?: string | null,"comentarios": (string)[],"evento_id": string,"id"?: string,"motivo": string,"propuestas": (string)[],"proyecto_id": string
+                  }
+                  Update: {
+                    "cambiado_at"?: string,"cambiado_por"?: string | null,"comentarios"?: (string)[],"evento_id"?: string,"id"?: string,"motivo"?: string,"propuestas"?: (string)[],"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_devoluciones_historial_cambiado_por_fkey"
+      columns: ["cambiado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_devoluciones_historial_evento_id_proyecto_id_fkey"
+      columns: ["evento_id","proyecto_id"]
+isOneToOne: false
+      referencedRelation: "jurado_devoluciones"
+      referencedColumns: ["evento_id","proyecto_id"]
+    }
+                  ]
+                },"jurado_devoluciones_vistos": {
+                  Row: {
+                    "comentarios": (string)[],"evento_id": string,"propuestas": (string)[],"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comentarios"?: (string)[],"evento_id": string,"propuestas"?: (string)[],"proyecto_id": string
+                  }
+                  Update: {
+                    "comentarios"?: (string)[],"evento_id"?: string,"propuestas"?: (string)[],"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_devoluciones_vistos_evento_id_proyecto_id_fkey"
+      columns: ["evento_id","proyecto_id"]
+isOneToOne: true
+      referencedRelation: "jurado_devoluciones"
+      referencedColumns: ["evento_id","proyecto_id"]
+    }
                   ]
                 },"jurado_envios": {
                   Row: {
@@ -157,17 +299,23 @@ isOneToOne: false
                   ]
                 },"jurado_evaluaciones": {
                   Row: {
-                    "comentarios": string | null,"created_at": string,"id": string,"jurado_id": string,"propuesta_valor": string | null,"proyecto_id": string,"updated_at": string
+                    "comentarios": string | null,"created_at": string,"evento_id": string | null,"id": string,"jurado_id": string,"propuesta_valor": string | null,"proyecto_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "comentarios"?: string | null,"created_at"?: string,"id"?: string,"jurado_id": string,"propuesta_valor"?: string | null,"proyecto_id": string,"updated_at"?: string
+                    "comentarios"?: string | null,"created_at"?: string,"evento_id"?: string | null,"id"?: string,"jurado_id": string,"propuesta_valor"?: string | null,"proyecto_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "comentarios"?: string | null,"created_at"?: string,"id"?: string,"jurado_id"?: string,"propuesta_valor"?: string | null,"proyecto_id"?: string,"updated_at"?: string
+                    "comentarios"?: string | null,"created_at"?: string,"evento_id"?: string | null,"id"?: string,"jurado_id"?: string,"propuesta_valor"?: string | null,"proyecto_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "jurado_evaluaciones_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "jurado_evaluaciones_jurado_id_fkey"
       columns: ["jurado_id"]
 isOneToOne: false
@@ -218,6 +366,32 @@ isOneToOne: true
       columns: ["evento_id"]
 isOneToOne: true
       referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"jurado_publicaciones": {
+                  Row: {
+                    "evento_id": string,"publicada_at": string,"publicada_por": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "evento_id": string,"publicada_at"?: string,"publicada_por"?: string | null
+                  }
+                  Update: {
+                    "evento_id"?: string,"publicada_at"?: string,"publicada_por"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_publicaciones_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: true
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_publicaciones_publicada_por_fkey"
+      columns: ["publicada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
       referencedColumns: ["id"]
     }
                   ]
@@ -379,8 +553,20 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "jurado_guardar_salones":
+            "jurado_evento_publicado":
+{ Args: { "p_evento": string }; Returns: boolean
+                           },
+"jurado_guardar_salones":
 { Args: { "p_evento": string,"p_jurados": Json,"p_proyectos": Json }; Returns: undefined
+                           },
+"jurado_huella":
+{ Args: { "p_evento": string,"p_proyecto": string }; Returns: string
+                           },
+"jurado_me_toca":
+{ Args: { "p_evento": string,"p_proyecto": string }; Returns: boolean
+                           },
+"jurado_publicar_evento":
+{ Args: { "p_evento": string }; Returns: number
                            },
 "mi_rol":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["rol"]

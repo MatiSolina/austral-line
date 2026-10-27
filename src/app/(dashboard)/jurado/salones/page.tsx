@@ -1,5 +1,5 @@
 // GRUPO JURADO — organización de cada evento en salones: qué equipos se presentan y qué jurados escuchan en cada uno.
-// Solo el admin/organizador. Abajo muestra qué jurados todavía no completaron sus evaluaciones.
+// Solo el admin/organizador. Abajo muestra qué jurados todavía no completaron sus evaluaciones de este evento.
 import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { estadosEvaluables } from "../_lib";
 import { fechaHora } from "../comunicaciones/plantillas";
 import { borrarSalon, crearSalon, guardarAsignaciones, renombrarSalon } from "./acciones";
-import { BotonConfirmar } from "./boton-confirmar";
+import { BotonConfirmar } from "../_components/boton-confirmar";
 
 const selectClase = "h-9 w-full min-w-32 border bg-background px-2 text-sm";
 const cantidad = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
@@ -45,16 +45,20 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
     );
   }
 
-  const [salones, proyectos, jurados, asignProyectos, asignJurados, criterios, evaluaciones] = await Promise.all([
+  const [salones, proyectos, jurados, asignProyectos, asignJurados, criterios, evaluaciones, sinEvento, publicacion] = await Promise.all([
     supabase.from("jurado_salones").select("id, nombre").eq("evento_id", evento.id).order("orden"),
     supabase.from("proyectos").select("id, nombre, estado").in("estado", estadosEvaluables).order("nombre"),
     supabase.from("personas").select("id, nombre").eq("rol", "jurado").order("nombre"),
     supabase.from("jurado_salon_proyectos").select("salon_id, proyecto_id, proyectos(nombre, estado)").eq("evento_id", evento.id),
     supabase.from("jurado_salon_jurados").select("salon_id, jurado_id, personas(nombre, rol)").eq("evento_id", evento.id),
     supabase.from("jurado_criterios").select("id", { count: "exact", head: true }),
-    supabase.from("jurado_evaluaciones").select("proyecto_id, jurado_id, jurado_puntajes(criterio_id)"),
+    supabase.from("jurado_evaluaciones").select("proyecto_id, jurado_id, jurado_puntajes(criterio_id)").eq("evento_id", evento.id),
+    supabase.from("jurado_evaluaciones").select("id", { count: "exact", head: true }).is("evento_id", null),
+    supabase.from("jurado_publicaciones").select("evento_id").eq("evento_id", evento.id).maybeSingle(),
   ]);
-  for (const r of [salones, proyectos, jurados, asignProyectos, asignJurados, criterios, evaluaciones]) if (r.error) throw r.error;
+  for (const r of [salones, proyectos, jurados, asignProyectos, asignJurados, criterios, evaluaciones, sinEvento, publicacion]) if (r.error) throw r.error;
+  // Con las devoluciones publicadas, los salones del evento quedan cerrados (la base también lo impide).
+  const cerrado = !!publicacion.data;
 
   const salonDeProyecto = new Map(asignProyectos.data!.map((a) => [a.proyecto_id, a.salon_id]));
   const salonDeJurado = new Map(asignJurados.data!.map((a) => [a.jurado_id, a.salon_id]));
@@ -102,6 +106,14 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
         <Button type="submit" variant="outline" size="lg">Ver</Button>
       </form>
 
+      {cerrado && (
+        <p className="mb-8 border-l-2 border-primary pl-4 text-sm text-[#666]">
+          Las devoluciones de este evento ya se publicaron: los salones y las asignaciones quedaron cerrados.
+        </p>
+      )}
+
+      {/* Con el evento publicado, todo lo de abajo queda deshabilitado. */}
+      <fieldset disabled={cerrado} className="contents">
       {/* 1. Salones del evento */}
       <section className="mb-14">
         <h2 className="mb-1 font-serif text-xl">Salones de {evento.nombre}</h2>
@@ -217,23 +229,16 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
           </form>
         </section>
       )}
+      </fieldset>
 
       {/* 3. Avance de las evaluaciones */}
       {resumen.length > 0 && (
         <section className="mb-14">
-          <h2 className="mb-1 flex items-center gap-3 font-serif text-xl">
-            Avance de las evaluaciones <Badge variant="destructive">Provisional</Badge>
-          </h2>
+          <h2 className="mb-1 font-serif text-xl">Avance de las evaluaciones</h2>
           <p className="mb-6 text-sm text-[#666]">
-            Qué jurados todavía no completaron la planilla de los equipos de su salón. Una evaluación está completa cuando tiene nota en todos los criterios.
+            Qué jurados todavía no completaron, en {evento.nombre}, la planilla de los equipos de su salón.
+            Una evaluación está completa cuando tiene nota en todos los criterios. Solo cuentan las notas de este evento.
           </p>
-          {/* Sacar este aviso cuando las notas queden separadas por evento. */}
-          <div role="alert" className="mb-8 border border-destructive p-4 text-sm">
-            <p className="font-medium text-destructive">No uses este avance para decidir si se pueden publicar las devoluciones.</p>
-            <p className="mt-1 text-[#666]">
-              Las notas todavía no están separadas por evento: si un jurado evaluó a un equipo en otro evento, acá figura como hecha aunque en este evento no lo haya evaluado.
-            </p>
-          </div>
 
           <p className="mb-6">
             <span className="font-serif text-3xl">{pendientes.length}</span>
@@ -270,6 +275,12 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
             ))}
           </div>
         </section>
+      )}
+      {(sinEvento.count ?? 0) > 0 && (
+        <p className="mb-14 border-l-2 border-primary pl-4 text-sm text-[#666]">
+          Hay {cantidad(sinEvento.count ?? 0, "evaluación cargada", "evaluaciones cargadas")} antes de separar las notas por evento.
+          Quedan guardadas sin cambios, pero no cuentan para ningún evento ni devolución.
+        </p>
       )}
     </div>
   );

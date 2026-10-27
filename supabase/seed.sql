@@ -93,3 +93,9 @@ insert into jurado_salon_jurados (evento_id, salon_id, jurado_id)
 select s.evento_id, s.id, pe.id from jurado_salones s
 join (values ('Salón A', 'julio@empresa.com'), ('Salón B', 'lucia@fondo.com')) as a(salon, email) on a.salon = s.nombre
 join personas pe on pe.email = a.email;
+
+-- GRUPO JURADO: la evaluación de Lucía a Reciclá es del Kickoff (las dos están en el Salón B).
+-- La de AgroSense queda sin evento, como las notas cargadas antes de separar por evento.
+update jurado_evaluaciones set evento_id = (select id from eventos where nombre = 'Kickoff')
+where proyecto_id = (select id from proyectos where nombre = 'Reciclá')
+  and jurado_id = (select id from personas where email = 'lucia@fondo.com');
