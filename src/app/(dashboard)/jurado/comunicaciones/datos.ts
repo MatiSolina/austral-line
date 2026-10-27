@@ -2,6 +2,7 @@
 import { headers } from "next/headers";
 import type { createClient } from "@/lib/supabase/server";
 import { esLinkWeb, estadosEvaluables } from "../_lib";
+import { criteriosDelEvento } from "../_criterios";
 import { modoPrueba } from "../_resend";
 import { diaSiguienteALas9, mailPostEvento } from "./plantillas";
 
@@ -16,11 +17,11 @@ export async function cargarDatos(supabase: Cliente, eventoId: string) {
       .select("id, nombre, descripcion, proyecto_integrantes(personas(nombre, email))")
       .in("estado", estadosEvaluables)
       .order("nombre"),
-    supabase.from("jurado_criterios").select("nombre").order("orden"),
+    criteriosDelEvento(supabase, eventoId),
     supabase.from("jurado_material_post").select("*").eq("evento_id", eventoId).maybeSingle(),
   ]);
   if (evento.error?.code === "22P02") return null; // id con formato inválido
-  for (const r of [evento, jurados, proyectos, criterios, material]) if (r.error) throw r.error;
+  for (const r of [evento, jurados, proyectos, material]) if (r.error) throw r.error;
   if (!evento.data) return null;
 
   return {
@@ -32,7 +33,7 @@ export async function cargarDatos(supabase: Cliente, eventoId: string) {
       descripcion: p.descripcion,
       integrantes: p.proyecto_integrantes.map((i) => i.personas),
     })),
-    criterios: criterios.data!.map((c) => c.nombre),
+    criterios: criterios.map((c) => c.nombre),
     material: material.data,
   };
 }

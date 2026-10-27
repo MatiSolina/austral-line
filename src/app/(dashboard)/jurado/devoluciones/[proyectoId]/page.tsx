@@ -95,6 +95,20 @@ export default async function RevisarDevolucion({ params, searchParams }: PagePr
         </p>
       )}
 
+      {/* Limitación pendiente de habilitar: estos jurados del salón no evaluaron a este equipo en este evento. */}
+      {equipo.noHabilitados.length > 0 && (
+        <div className="mb-8 border-l-2 border-primary pl-4 text-sm text-[#666]">
+          <p>
+            {equipo.noHabilitados.length === 1 ? "Un jurado del salón no pudo" : `${equipo.noHabilitados.length} jurados del salón no pudieron`} evaluar
+            a este equipo en este evento, porque por ahora cada jurado evalúa a un mismo equipo una sola vez. Sus notas no están
+            en este promedio.
+          </p>
+          <ul className="mt-1">
+            {equipo.noHabilitados.map((j) => <li key={j.id}>{j.nombre}: {j.motivo}.</li>)}
+          </ul>
+        </div>
+      )}
+
       {/* Notas: solo lectura */}
       <section className="mb-10">
         <div className="mb-4 flex items-baseline justify-between gap-4">

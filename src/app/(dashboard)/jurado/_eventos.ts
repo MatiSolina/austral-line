@@ -40,3 +40,23 @@ export async function salonDelJurado(supabase: Cliente, eventoId: string, jurado
 }
 
 export const conEvento = (ruta: string, eventoId: string | undefined) => (eventoId ? `${ruta}?evento=${eventoId}` : ruta);
+
+// Hasta que se habilite evaluar a un mismo equipo en más de un evento, cada jurado tiene una sola evaluación por equipo.
+// Si ya la cargó en otro evento (o antes de separar las notas por evento), en este evento ese equipo queda bloqueado
+// para él: no es una evaluación pendiente. Devuelve "proyecto:jurado" → nombre del evento, o null si la nota no tiene evento.
+export async function evaluacionesBloqueadas(supabase: Cliente, eventoId: string, juradoId?: string) {
+  let consulta = supabase
+    .from("jurado_evaluaciones")
+    .select("proyecto_id, jurado_id, eventos(nombre)")
+    .or(`evento_id.is.null,evento_id.neq.${eventoId}`);
+  if (juradoId) consulta = consulta.eq("jurado_id", juradoId);
+  const { data, error } = await consulta;
+  if (error) throw error;
+  return new Map(data.map((e) => [`${e.proyecto_id}:${e.jurado_id}`, e.eventos?.nombre ?? null]));
+}
+
+// Por qué un equipo bloqueado no se puede evaluar, contado al jurado o al organizador.
+export const motivoBloqueo = (evento: string | null, paraElJurado: boolean) =>
+  evento
+    ? `${paraElJurado ? "Ya lo evaluaste" : "Ya lo evaluó"} en ${evento}`
+    : `${paraElJurado ? "Tenés" : "Tiene"} una nota anterior a la separación por evento`;

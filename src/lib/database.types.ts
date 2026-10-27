@@ -129,14 +129,14 @@ isOneToOne: false
                   ]
                 },"jurado_criterios": {
                   Row: {
-                    "created_at": string,"descripcion": string | null,"id": string,"nombre": string,"orden": number
+                    "created_at": string,"descripcion": string | null,"es_base": boolean,"id": string,"nombre": string,"orden": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"descripcion"?: string | null,"id"?: string,"nombre": string,"orden"?: number
+                    "created_at"?: string,"descripcion"?: string | null,"es_base"?: boolean,"id"?: string,"nombre": string,"orden"?: number
                   }
                   Update: {
-                    "created_at"?: string,"descripcion"?: string | null,"id"?: string,"nombre"?: string,"orden"?: number
+                    "created_at"?: string,"descripcion"?: string | null,"es_base"?: boolean,"id"?: string,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
                     
@@ -306,6 +306,32 @@ isOneToOne: false
       columns: ["proyecto_id"]
 isOneToOne: false
       referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"jurado_evento_criterios": {
+                  Row: {
+                    "criterio_id": string,"evento_id": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "criterio_id": string,"evento_id": string,"orden"?: number
+                  }
+                  Update: {
+                    "criterio_id"?: string,"evento_id"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_evento_criterios_criterio_id_fkey"
+      columns: ["criterio_id"]
+isOneToOne: false
+      referencedRelation: "jurado_criterios"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_evento_criterios_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
       referencedColumns: ["id"]
     }
                   ]
@@ -533,7 +559,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "jurado_evento_publicado":
+            "jurado_criterios_aplicar":
+{ Args: { "p_evento": string,"p_origen"?: string }; Returns: number
+                           },
+"jurado_criterios_fijar_usados":
+{ Args: { "p_evento": string }; Returns: number
+                           },
+"jurado_evento_bloqueado":
+{ Args: { "p_evento": string }; Returns: boolean
+                           },
+"jurado_evento_publicado":
 { Args: { "p_evento": string }; Returns: boolean
                            },
 "jurado_guardar_salones":
