@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { estadosEvaluables } from "../_lib";
+import { criteriosDelEvento } from "../_criterios";
+import { evaluacionesBloqueadas, motivoBloqueo } from "../_eventos";
 import { fechaHora } from "../comunicaciones/plantillas";
 import { borrarSalon, crearSalon, guardarAsignaciones, renombrarSalon } from "./acciones";
 import { BotonConfirmar } from "../_components/boton-confirmar";
@@ -51,32 +53,42 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
     supabase.from("personas").select("id, nombre").eq("rol", "jurado").order("nombre"),
     supabase.from("jurado_salon_proyectos").select("salon_id, proyecto_id, proyectos(nombre, estado)").eq("evento_id", evento.id),
     supabase.from("jurado_salon_jurados").select("salon_id, jurado_id, personas(nombre, rol)").eq("evento_id", evento.id),
-    supabase.from("jurado_criterios").select("id", { count: "exact", head: true }),
+    criteriosDelEvento(supabase, evento.id),
     supabase.from("jurado_evaluaciones").select("proyecto_id, jurado_id, jurado_puntajes(criterio_id)").eq("evento_id", evento.id),
     supabase.from("jurado_evaluaciones").select("id", { count: "exact", head: true }).is("evento_id", null),
     supabase.from("jurado_publicaciones").select("evento_id").eq("evento_id", evento.id).maybeSingle(),
   ]);
-  for (const r of [salones, proyectos, jurados, asignProyectos, asignJurados, criterios, evaluaciones, sinEvento, publicacion]) if (r.error) throw r.error;
+  for (const r of [salones, proyectos, jurados, asignProyectos, asignJurados, evaluaciones, sinEvento, publicacion]) if (r.error) throw r.error;
+  const bloqueos = await evaluacionesBloqueadas(supabase, evento.id);
   // Con las devoluciones publicadas, los salones del evento quedan cerrados (la base también lo impide).
   const cerrado = !!publicacion.data;
 
   const salonDeProyecto = new Map(asignProyectos.data!.map((a) => [a.proyecto_id, a.salon_id]));
   const salonDeJurado = new Map(asignJurados.data!.map((a) => [a.jurado_id, a.salon_id]));
-  const totalCriterios = criterios.count ?? 0;
-  // Evaluación completa = tiene nota en todos los criterios.
+  const delEvento = new Set(criterios.map((c) => c.id));
+  const totalCriterios = delEvento.size;
+  // Evaluación completa = tiene nota en todos los criterios de este evento.
   const completas = new Set(
     evaluaciones.data!
-      .filter((e) => totalCriterios > 0 && e.jurado_puntajes.length >= totalCriterios)
+      .filter((e) => totalCriterios > 0 && e.jurado_puntajes.filter((p) => delEvento.has(p.criterio_id)).length >= totalCriterios)
       .map((e) => `${e.proyecto_id}:${e.jurado_id}`),
   );
 
   const resumen = salones.data!.map((s) => {
     const equipos = proyectos.data!.filter((p) => salonDeProyecto.get(p.id) === s.id);
     const suyos = jurados.data!.filter((j) => salonDeJurado.get(j.id) === s.id);
-    const avance = suyos.map((j) => ({
-      ...j,
-      faltan: equipos.filter((p) => !completas.has(`${p.id}:${j.id}`)),
-    }));
+    // Los equipos que el jurado no puede evaluar en este evento no cuentan como pendientes.
+    const avance = suyos.map((j) => {
+      const habilitados = equipos.filter((p) => !bloqueos.has(`${p.id}:${j.id}`));
+      return {
+        ...j,
+        habilitados: habilitados.length,
+        faltan: habilitados.filter((p) => !completas.has(`${p.id}:${j.id}`)),
+        bloqueados: equipos
+          .filter((p) => bloqueos.has(`${p.id}:${j.id}`))
+          .map((p) => ({ ...p, motivo: motivoBloqueo(bloqueos.get(`${p.id}:${j.id}`) ?? null, false) })),
+      };
+    });
     return { ...s, equipos, jurados: suyos, avance };
   });
   const equiposSinSalon = proyectos.data!.filter((p) => !salonDeProyecto.has(p.id));
@@ -238,6 +250,7 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
           <p className="mb-6 text-sm text-[#666]">
             Qué jurados todavía no completaron, en {evento.nombre}, la planilla de los equipos de su salón.
             Una evaluación está completa cuando tiene nota en todos los criterios. Solo cuentan las notas de este evento.
+            Si un jurado ya evaluó a un equipo en otro evento, ese equipo figura como no habilitado y no queda pendiente.
           </p>
 
           <p className="mb-6">
@@ -260,11 +273,16 @@ export default async function Salones({ searchParams }: PageProps<"/jurado/salon
                       {s.avance.map((j) => (
                         <TableRow key={j.id}>
                           <TableCell className="whitespace-normal font-medium">{j.nombre}</TableCell>
-                          <TableCell className="text-right font-serif text-lg">{s.equipos.length - j.faltan.length}/{s.equipos.length}</TableCell>
+                          <TableCell className="text-right font-serif text-lg">{j.habilitados - j.faltan.length}/{j.habilitados}</TableCell>
                           <TableCell className="whitespace-normal text-sm">
-                            {j.faltan.length === 0
+                            {j.habilitados === 0
+                              ? <span className="text-[#666]">Sin equipos habilitados</span>
+                              : j.faltan.length === 0
                               ? <Badge variant="outline">Al día</Badge>
                               : <span className="text-[#666]">{j.faltan.map((p) => p.nombre).join(", ")}</span>}
+                            {j.bloqueados.map((p) => (
+                              <span key={p.id} className="mt-1 block text-[#666]">No habilitado: {p.nombre}. {p.motivo}.</span>
+                            ))}
                           </TableCell>
                         </TableRow>
                       ))}

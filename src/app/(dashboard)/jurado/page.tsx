@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { estadosEvaluables, promedio } from "./_lib";
-import { conEvento, elegirEvento, eventosVisibles, salonDelJurado } from "./_eventos";
+import { conEvento, elegirEvento, evaluacionesBloqueadas, eventosVisibles, motivoBloqueo, salonDelJurado } from "./_eventos";
 import { fechaHora } from "./comunicaciones/plantillas";
 
 const linkClase = "text-sm text-[#666] underline underline-offset-4 hover:text-primary";
@@ -29,17 +29,22 @@ export default async function Jurado({ searchParams }: PageProps<"/jurado">) {
   const salonDe = new Map(asignados.map((a) => [a.proyecto_id, a.jurado_salones.nombre]));
   const ids = esJurado ? (salon?.proyectos ?? []) : [...salonDe.keys()];
 
-  const [proyectos, evaluaciones] = await Promise.all([
+  const [proyectos, evaluaciones, bloqueos] = await Promise.all([
     supabase.from("proyectos").select("id, nombre, descripcion, estado, jurado_fichas(proyecto_id)").in("id", ids).in("estado", estadosEvaluables).order("nombre"),
-    supabase.from("jurado_evaluaciones").select("proyecto_id, evento_id, jurado_puntajes(puntaje)").eq("jurado_id", persona.id).in("proyecto_id", ids),
+    evento
+      ? supabase.from("jurado_evaluaciones").select("proyecto_id, jurado_puntajes(puntaje)").eq("jurado_id", persona.id).eq("evento_id", evento.id).in("proyecto_id", ids)
+      : { data: [], error: null },
+    evento && esJurado ? evaluacionesBloqueadas(supabase, evento.id, persona.id) : new Map<string, string | null>(),
   ]);
   if (proyectos.error) throw proyectos.error;
   if (evaluaciones.error) throw evaluaciones.error;
 
-  const deEsteEvento = evaluaciones.data.filter((e) => e.evento_id === evento?.id);
-  const deOtroEvento = new Set(evaluaciones.data.filter((e) => e.evento_id !== evento?.id).map((e) => e.proyecto_id));
-  const promedios = new Map(deEsteEvento.map((e) => [e.proyecto_id, promedio(e.jurado_puntajes.map((p) => p.puntaje)) ?? 0]));
-  const evaluados = proyectos.data.filter((p) => promedios.has(p.id)).length;
+  const promedios = new Map(evaluaciones.data.map((e) => [e.proyecto_id, promedio(e.jurado_puntajes.map((p) => p.puntaje)) ?? 0]));
+  // Bloqueado = ya lo evaluó en otro evento o antes de separar por evento: no cuenta como pendiente.
+  const bloqueado = (proyectoId: string) => bloqueos.has(`${proyectoId}:${persona.id}`);
+  const evaluables = proyectos.data.filter((p) => !bloqueado(p.id));
+  const evaluados = evaluables.filter((p) => promedios.has(p.id)).length;
+  const bloqueados = proyectos.data.length - evaluables.length;
   const evaluar = (proyectoId: string) => conEvento(`/jurado/evaluar/${proyectoId}`, evento?.id);
 
   return (
@@ -56,12 +61,14 @@ export default async function Jurado({ searchParams }: PageProps<"/jurado">) {
         <div className="flex shrink-0 flex-wrap items-end gap-6">
           <Link href={conEvento("/jurado/deliberacion", evento?.id)} className={linkClase}>Tablero de deliberación</Link>
           {!esJurado && <Link href={conEvento("/jurado/salones", evento?.id)} className={linkClase}>Salones</Link>}
+          {!esJurado && <Link href="/jurado/criterios" className={linkClase}>Criterios</Link>}
           {!esJurado && <Link href={conEvento("/jurado/devoluciones", evento?.id)} className={linkClase}>Devoluciones</Link>}
           {!esJurado && <Link href="/jurado/comunicaciones" className={linkClase}>Mails a jurados</Link>}
           {esJurado && salon && (
             <p className="text-right">
-              <span className="font-serif text-3xl">{evaluados}/{proyectos.data.length}</span>
+              <span className="font-serif text-3xl">{evaluados}/{evaluables.length}</span>
               <span className="block text-xs text-[#666]">evaluados</span>
+              {bloqueados > 0 && <span className="block text-xs text-[#666]">{bloqueados} no habilitado{bloqueados === 1 ? "" : "s"}</span>}
             </p>
           )}
         </div>
@@ -130,8 +137,11 @@ export default async function Jurado({ searchParams }: PageProps<"/jurado">) {
                             ? <span className="text-sm text-[#666] underline underline-offset-4">Ver planilla</span>
                             : tuPromedio !== undefined
                             ? <span className="font-serif text-xl">{tuPromedio.toFixed(1)}</span>
-                            : deOtroEvento.has(p.id)
-                            ? <span className="text-sm text-[#666]">Evaluado en otro evento</span>
+                            : bloqueado(p.id)
+                            ? <span className="block whitespace-normal text-sm text-[#666]">
+                                No habilitado
+                                <span className="block text-xs">{motivoBloqueo(bloqueos.get(`${p.id}:${persona.id}`) ?? null, true)}</span>
+                              </span>
                             : <span className="text-sm text-[#666] underline underline-offset-4">Evaluar</span>}
                         </Link>
                       </TableCell>

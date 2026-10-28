@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { estadosEvaluables, promedio } from "../_lib";
+import { criteriosDelEvento } from "../_criterios";
 import { conEvento, elegirEvento, eventosVisibles, salonDelJurado } from "../_eventos";
 import { fechaHora } from "../comunicaciones/plantillas";
 
@@ -34,7 +35,7 @@ export default async function Deliberacion({ searchParams }: PageProps<"/jurado/
 
   const [proyectos, criterios, evaluaciones] = await Promise.all([
     supabase.from("proyectos").select("id, nombre, estado, jurado_fichas(propuesta_valor)").in("id", ids).in("estado", estadosEvaluables),
-    supabase.from("jurado_criterios").select("id, nombre").order("orden"),
+    criteriosDelEvento(supabase, evento?.id),
     // Solo las notas de este evento: las de otros eventos (o sin evento) no se mezclan.
     salon
       ? supabase
@@ -47,9 +48,10 @@ export default async function Deliberacion({ searchParams }: PageProps<"/jurado/
   ]);
   const notas = evaluaciones?.data ?? [];
   if (proyectos.error) throw proyectos.error;
-  if (criterios.error) throw criterios.error;
   if (evaluaciones?.error) throw evaluaciones.error;
   const juradosDelSalon = salon?.jurado_salon_jurados.length ?? 0;
+  // Columnas: los criterios de este evento.
+  const columnas = criterios;
 
   const ranking = proyectos.data
     .map((p) => {
@@ -59,7 +61,7 @@ export default async function Deliberacion({ searchParams }: PageProps<"/jurado/
         ...p,
         evaluaciones: evs,
         general: promedio(puntajes.map((x) => x.puntaje)),
-        porCriterio: new Map(criterios.data.map((c) => [
+        porCriterio: new Map(columnas.map((c) => [
           c.id,
           promedio(puntajes.filter((x) => x.criterio_id === c.id).map((x) => x.puntaje)),
         ])),
@@ -114,7 +116,7 @@ export default async function Deliberacion({ searchParams }: PageProps<"/jurado/
               <TableRow>
                 <TableHead className="w-10">#</TableHead>
                 <TableHead>Proyecto</TableHead>
-                {criterios.data.map((c) => <TableHead key={c.id} className="text-right">{c.nombre}</TableHead>)}
+                {columnas.map((c) => <TableHead key={c.id} className="text-right">{c.nombre}</TableHead>)}
                 <TableHead className="text-right">Jurados</TableHead>
                 <TableHead className="text-right">Promedio</TableHead>
               </TableRow>
@@ -126,7 +128,7 @@ export default async function Deliberacion({ searchParams }: PageProps<"/jurado/
                   <TableCell>
                     <a href={`#${p.id}`} className="font-medium hover:text-primary">{p.nombre}</a>
                   </TableCell>
-                  {criterios.data.map((c) => (
+                  {columnas.map((c) => (
                     <TableCell key={c.id} className="text-right text-[#666]">{formato(p.porCriterio.get(c.id))}</TableCell>
                   ))}
                   <TableCell className="text-right text-[#666]">{p.evaluaciones.length}/{juradosDelSalon}</TableCell>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { estadosEvaluables } from "../../_lib";
 import { conEvento, salonDelJurado } from "../../_eventos";
+import { criteriosDelEvento } from "../../_criterios";
 import { FichaProyecto } from "../../_components/ficha-proyecto";
 
 const escala = Array.from({ length: 10 }, (_, i) => i + 1);
@@ -25,8 +26,9 @@ async function guardarEvaluacion(formData: FormData) {
   if (errorProyecto) throw errorProyecto;
   if (!proyecto || !estadosEvaluables.includes(proyecto.estado)) throw new Error("Este proyecto todavía no se puede evaluar.");
 
-  const { data: criterios, error: errorCriterios } = await supabase.from("jurado_criterios").select("id");
-  if (errorCriterios) throw errorCriterios;
+  // Se puntúan los criterios de ESTE evento (la base también lo exige).
+  const criterios = await criteriosDelEvento(supabase, eventoId);
+  if (criterios.length === 0) throw new Error("Este evento todavía no tiene criterios de evaluación.");
   const puntajes = criterios.map((c) => ({ criterio_id: c.id, puntaje: Number(formData.get(`criterio_${c.id}`)) }));
   if (puntajes.some((p) => !Number.isInteger(p.puntaje) || p.puntaje < 1 || p.puntaje > 10)) {
     throw new Error("Falta puntuar algún criterio (de 1 a 10).");
@@ -110,10 +112,9 @@ export default async function EvaluarProyecto({ params, searchParams }: PageProp
   // Y cuando se publican las devoluciones del evento, las notas quedan cerradas (la base también lo impide).
   const { data: publicacion } = await supabase.from("jurado_publicaciones").select("evento_id").eq("evento_id", evento.id).maybeSingle();
   const cerrado = !!publicacion;
-  const soloLectura = persona.rol !== "jurado" || cerrado;
 
   const [criterios, evaluacion] = await Promise.all([
-    supabase.from("jurado_criterios").select("id, nombre, descripcion").order("orden"),
+    criteriosDelEvento(supabase, evento.id),
     supabase
       .from("jurado_evaluaciones")
       .select("evento_id, propuesta_valor, comentarios, eventos(nombre), jurado_puntajes(criterio_id, puntaje)")
@@ -121,8 +122,10 @@ export default async function EvaluarProyecto({ params, searchParams }: PageProp
       .eq("jurado_id", persona.id)
       .maybeSingle(),
   ]);
-  if (criterios.error) throw criterios.error;
   if (evaluacion.error) throw evaluacion.error;
+  // Un evento sin criterios no se puede evaluar todavía (los arma el organizador desde Criterios).
+  const sinCriterios = criterios.length === 0;
+  const soloLectura = persona.rol !== "jurado" || cerrado || sinCriterios;
 
   // Hasta que el profe autorice una evaluación por evento, cada jurado tiene una sola por equipo:
   // si ya es de otro evento (o de antes de separar por evento), se muestra el aviso y no se pisa.
@@ -169,7 +172,9 @@ export default async function EvaluarProyecto({ params, searchParams }: PageProp
 
       {soloLectura && (
         <p className="mb-8 border-l-2 border-primary pl-4 text-sm text-[#666]">
-          {cerrado
+          {sinCriterios
+            ? "Este evento todavía no tiene criterios de evaluación. Los arma el organizador; cuando estén, vas a poder puntuar."
+            : cerrado
             ? "Las devoluciones de este evento ya se publicaron: las notas quedaron cerradas."
             : "Estás viendo la planilla como administrador. Las notas las cargan solo los jurados, así no se mezclan con el ranking."}
         </p>
@@ -179,7 +184,7 @@ export default async function EvaluarProyecto({ params, searchParams }: PageProp
         <input type="hidden" name="proyecto_id" value={proyecto.id} />
         <input type="hidden" name="evento_id" value={evento.id} />
         <fieldset disabled={soloLectura} className="disabled:opacity-60">
-          {criterios.data.map((c) => (
+          {criterios.map((c) => (
             <fieldset key={c.id} className="group border-b pb-8 mb-8">
               <legend className="font-medium">{c.nombre}</legend>
               {c.descripcion && <p className="mt-1 text-sm text-[#666]">{c.descripcion}</p>}

@@ -1,6 +1,8 @@
 // GRUPO JURADO — estado de las devoluciones de un evento (lo usan la lista, la revisión de cada equipo y las acciones).
 import type { createClient } from "@/lib/supabase/server";
 import { promedio } from "../_lib";
+import { criteriosDelEvento } from "../_criterios";
+import { evaluacionesBloqueadas, motivoBloqueo } from "../_eventos";
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
 
@@ -42,7 +44,7 @@ export async function cargarEvento(supabase: Cliente, eventoId: string) {
       .select("id, nombre, jurado_salon_proyectos(proyecto_id, proyectos(nombre)), jurado_salon_jurados(jurado_id, personas(nombre))")
       .eq("evento_id", eventoId)
       .order("orden"),
-    supabase.from("jurado_criterios").select("id, nombre").order("orden"),
+    criteriosDelEvento(supabase, eventoId),
     supabase
       .from("jurado_evaluaciones")
       .select("id, proyecto_id, jurado_id, propuesta_valor, comentarios, jurado_puntajes(criterio_id, puntaje)")
@@ -52,10 +54,12 @@ export async function cargarEvento(supabase: Cliente, eventoId: string) {
     supabase.from("jurado_devoluciones_vistos").select("proyecto_id, comentarios, propuestas").eq("evento_id", eventoId),
   ]);
   if (evento.error?.code === "22P02") return null;
-  for (const r of [evento, publicacion, salones, criterios, evaluaciones, devoluciones, ausencias, vistos]) if (r.error) throw r.error;
+  for (const r of [evento, publicacion, salones, evaluaciones, devoluciones, ausencias, vistos]) if (r.error) throw r.error;
   if (!evento.data) return null;
 
-  const totalCriterios = criterios.data!.length;
+  // Una evaluación está completa cuando tiene nota en todos los criterios de este evento.
+  const delEvento = new Set(criterios.map((c) => c.id));
+  const totalCriterios = delEvento.size;
   const ausentes = new Set(ausencias.data!.map((a) => a.proyecto_id));
   const equipos = salones.data!.flatMap((s) => s.jurado_salon_proyectos.map((sp) => ({
     id: sp.proyecto_id,
@@ -71,10 +75,11 @@ export async function cargarEvento(supabase: Cliente, eventoId: string) {
     return [q.id, data] as const;
   }));
   const huellaActual = new Map(huellas);
+  const bloqueos = await evaluacionesBloqueadas(supabase, eventoId);
 
   const resumen = equipos.map((q) => {
     const evs = evaluaciones.data!.filter((e) => e.proyecto_id === q.id);
-    const completas = evs.filter((e) => totalCriterios > 0 && e.jurado_puntajes.length >= totalCriterios);
+    const completas = evs.filter((e) => totalCriterios > 0 && e.jurado_puntajes.filter((p) => delEvento.has(p.criterio_id)).length >= totalCriterios);
     const devolucion = devoluciones.data!.find((d) => d.proyecto_id === q.id) ?? null;
     const estado: Estado = ausentes.has(q.id)
       ? "ausente"
@@ -93,10 +98,14 @@ export async function cargarEvento(supabase: Cliente, eventoId: string) {
       // Los textos originales que el admin vio al revisar (tabla solo para admin).
       vistos: vistos.data!.find((v) => v.proyecto_id === q.id) ?? null,
       evaluaciones: evs,
-      faltan: q.jurados.filter((j) => !completas.some((e) => e.jurado_id === j.id)),
+      // Pendientes: jurados habilitados sin evaluación completa. Los no habilitados (ya lo evaluaron en otro evento) van aparte.
+      faltan: q.jurados.filter((j) => !bloqueos.has(`${q.id}:${j.id}`) && !completas.some((e) => e.jurado_id === j.id)),
+      noHabilitados: q.jurados
+        .filter((j) => bloqueos.has(`${q.id}:${j.id}`))
+        .map((j) => ({ ...j, motivo: motivoBloqueo(bloqueos.get(`${q.id}:${j.id}`) ?? null, false) })),
       // Vista previa de las notas: la base las vuelve a calcular igual al guardar la devolución.
       general: promedio(puntajes.map((p) => p.puntaje)),
-      porCriterio: criterios.data!.map((c) => ({
+      porCriterio: criterios.map((c) => ({
         criterio: c.nombre,
         promedio: promedio(puntajes.filter((p) => p.criterio_id === c.id).map((p) => p.puntaje)),
       })),
