@@ -1,9 +1,14 @@
 // GRUPO ALUMNOS — esta carpeta es de ustedes.
+import { redirect } from "next/navigation";
+import { getUsuario } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { MiGrupo } from "./_components/mi-grupo";
 
 export default async function Alumnos() {
+  const { persona } = await getUsuario();
+  if (persona?.rol === "mentor") redirect("/alumnos/entregas"); // el mentor solo usa Entregas
   const supabase = await createClient();
   const { data: proyectos, error } = await supabase
     .from("proyectos")
@@ -14,6 +19,7 @@ export default async function Alumnos() {
   return (
     <>
       <h1 className="mb-6 font-serif text-2xl">Proyectos</h1>
+      {persona?.rol === "alumno" && <MiGrupo personaId={persona.id} />}
       <Table>
         <TableHeader>
           <TableRow><TableHead>Proyecto</TableHead><TableHead>Integrantes</TableHead><TableHead>Estado</TableHead></TableRow>

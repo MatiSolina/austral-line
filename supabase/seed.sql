@@ -104,3 +104,122 @@ insert into jurado_salon_jurados (evento_id, salon_id, jurado_id)
 select s.evento_id, s.id, pe.id from jurado_salones s
 join (values ('Salón A', 'julio@empresa.com'), ('Salón B', 'lucia@fondo.com')) as a(salon, email) on a.salon = s.nombre
 join personas pe on pe.email = a.email;
+
+-- GRUPO MENTORES: reuniones de Marta para probar el resumen pre-reunión. Una pasada con notas y dos próximas
+-- (la de Tutorly es la primera y no tiene lugar cargado, para ver cómo muestra lo que falta).
+insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar, notas, proximos_pasos)
+select p.id, m.id, now() + v.cuando, v.lugar, v.notas, v.pasos
+from (values
+  ('AgroSense', interval '-8 days', 'https://meet.google.com/abc-defg-hij',
+    'Revisamos el piloto en Maipú: los sensores andan bien, pero los productores no abren la app todos los días.',
+    'Probar alertas por WhatsApp con 2 productores y traer números de uso.'),
+  ('AgroSense', interval '3 days', 'https://meet.google.com/abc-defg-hij', null, null),
+  ('Tutorly', interval '2 days', null, null, null)
+) as v(proyecto, cuando, lugar, notas, pasos)
+join proyectos p on p.nombre = v.proyecto
+join personas m on m.email = 'marta@empresa.com';
+
+-- GRUPO ALUMNOS: alumnos de prueba con perfil, para probar "Compañeros afines".
+-- Logins con contraseña austral123: carla@, diego@ y elena@alumnos.austral.edu.ar. Ana arranca sin perfil.
+-- Carla ya la suma el bloque de Jurado (integrante de Reciclá); acá solo se agrega si falta.
+insert into personas (nombre, email, rol) values
+  ('Carla Alumna', 'carla@alumnos.austral.edu.ar', 'alumno'),
+  ('Diego Alumno', 'diego@alumnos.austral.edu.ar', 'alumno'),
+  ('Elena Alumna', 'elena@alumnos.austral.edu.ar', 'alumno')
+on conflict (email) do nothing;
+
+select pg_temp.crear_login(email) from personas
+  where email in ('carla@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar', 'elena@alumnos.austral.edu.ar');
+
+insert into alumnos_perfiles (persona_id, sobre_mi, busca_equipo)
+select pe.id, v.sobre_mi, v.busca_equipo
+from personas pe join (values
+  ('carla@alumnos.austral.edu.ar', 'Me interesa mejorar el acceso a la salud en el interior.', true),
+  ('diego@alumnos.austral.edu.ar', 'Vengo de una familia de productores, me gustaría algo de agro.', true),
+  ('elena@alumnos.austral.edu.ar', null, true),
+  ('bruno@alumnos.austral.edu.ar', 'Ya estoy en Tutorly.', false)
+) as v(email, sobre_mi, busca_equipo) on v.email = pe.email;
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Marketing'),
+  ('diego@alumnos.austral.edu.ar', 'Agronegocios'),
+  ('elena@alumnos.austral.edu.ar', 'Administración de Empresas'),
+  ('bruno@alumnos.austral.edu.ar', 'Negocios Digitales')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera;
+
+-- Cuánto le interesa a cada uno cada tema (1 a 5 estrellas).
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Salud', 5), ('carla@alumnos.austral.edu.ar', 'Impacto social', 4),
+  ('carla@alumnos.austral.edu.ar', 'Finanzas y fintech', 1), ('carla@alumnos.austral.edu.ar', 'Agro y alimentos', 2),
+  ('diego@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('diego@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 4),
+  ('diego@alumnos.austral.edu.ar', 'Moda y diseño', 1), ('diego@alumnos.austral.edu.ar', 'Educación', 3),
+  ('elena@alumnos.austral.edu.ar', 'Agro y alimentos', 4), ('elena@alumnos.austral.edu.ar', 'Finanzas y fintech', 5),
+  ('elena@alumnos.austral.edu.ar', 'Salud', 1), ('elena@alumnos.austral.edu.ar', 'Consumo y retail', 3),
+  ('bruno@alumnos.austral.edu.ar', 'Educación', 5), ('bruno@alumnos.austral.edu.ar', 'Tecnología y software', 5),
+  ('bruno@alumnos.austral.edu.ar', 'Agro y alimentos', 2), ('bruno@alumnos.austral.edu.ar', 'Salud', 3)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes;
+
+-- GRUPO ALUMNOS: grupos de ejemplo para ver la interdisciplinariedad en "Proyectos".
+-- Elena (Administración) se suma a Tutorly con Bruno (Negocios Digitales): interdisciplinario.
+-- Carla (Marketing) queda sola en Reciclá: una sola carrera, con sugerencias. Ana (AgroSense) no tiene perfil.
+insert into proyecto_integrantes (proyecto_id, persona_id)
+select p.id, pe.id from proyectos p, personas pe
+where p.nombre = 'Tutorly' and pe.email = 'elena@alumnos.austral.edu.ar'
+on conflict do nothing;
+
+-- GRUPO ALUMNOS: ideas de ejemplo para el banco de problemas e ideas.
+insert into alumnos_ideas (autor_id, titulo, descripcion, interes_id, estado)
+select pe.id, v.titulo, v.descripcion, m.id, v.estado
+from (values
+  ('admin@austral.edu.ar', 'Trazabilidad para pequeños productores',
+    'Los productores chicos no pueden demostrar el origen de lo que venden y pierden acceso a mercados que lo exigen. ¿Cómo darles trazabilidad a bajo costo?',
+    'Agro y alimentos', 'disponible'),
+  ('diego@alumnos.austral.edu.ar', 'Alquiler de maquinaria agrícola entre vecinos',
+    'Muchas máquinas pasan la mayor parte del año paradas. Una plataforma para que productores vecinos se las alquilen entre sí.',
+    'Agro y alimentos', 'disponible'),
+  ('carla@alumnos.austral.edu.ar', 'Turnos médicos en el interior',
+    'En pueblos chicos conseguir un turno con un especialista lleva semanas y viajes. Idea: coordinar visitas de especialistas según la demanda acumulada.',
+    'Salud', 'disponible'),
+  ('admin@austral.edu.ar', 'Finanzas personales para estudiantes',
+    'Los estudiantes que empiezan a trabajar no saben cómo ahorrar o invertir sus primeros sueldos.',
+    'Finanzas y fintech', 'tomada')
+) as v(email, titulo, descripcion, tema, estado)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.tema;
+
+insert into alumnos_ideas_interesados (idea_id, persona_id)
+select i.id, pe.id
+from alumnos_ideas i join personas pe on pe.email in ('elena@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar')
+where i.titulo = 'Trazabilidad para pequeños productores';
+
+-- GRUPO ALUMNOS: contexto y una conversación de ejemplo en una idea del banco.
+update alumnos_ideas set
+  a_quien_le_pasa = 'Productores de menos de 50 hectáreas que venden a acopiadores o en ferias.',
+  que_se_intento = 'Certificaciones privadas, pero son caras y piden mucho papeleo.',
+  como_seria_resuelto = 'Que un productor pueda mostrar el origen de un lote con el celular, sin pagar una certificación.'
+where titulo = 'Trazabilidad para pequeños productores';
+
+with pregunta as (
+  insert into alumnos_ideas_mensajes (idea_id, autor_id, texto)
+  select i.id, pe.id, '¿Hay algún productor que conozcan para entrevistar?'
+  from alumnos_ideas i, personas pe
+  where i.titulo = 'Trazabilidad para pequeños productores' and pe.email = 'elena@alumnos.austral.edu.ar'
+  returning id, idea_id
+)
+insert into alumnos_ideas_mensajes (idea_id, autor_id, respuesta_a, texto)
+select pregunta.idea_id, pe.id, pregunta.id, 'Sí, mi familia trabaja con varios en San Pedro. Les puedo preguntar.'
+from pregunta, personas pe where pe.email = 'diego@alumnos.austral.edu.ar';
+
+-- GRUPO ALUMNOS: un reporte pendiente de ejemplo, para ver la moderación en el Panel de profesores.
+insert into alumnos_ideas_reportes (idea_id, persona_id, motivo)
+select i.id, pe.id, 'Me parece que repite una idea que ya está en el banco con otro nombre.'
+from alumnos_ideas i, personas pe
+where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@alumnos.austral.edu.ar';

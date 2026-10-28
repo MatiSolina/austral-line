@@ -23,7 +23,391 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "austral_participaciones": {
+            "alumnos_carreras": {
+                  Row: {
+                    "carrera_id": number,"created_at": string,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "carrera_id": number,"created_at"?: string,"persona_id": string
+                  }
+                  Update: {
+                    "carrera_id"?: number,"created_at"?: string,"persona_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_carreras_carrera_id_fkey"
+      columns: ["carrera_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_carreras_maestro"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_carreras_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_carreras_maestro": {
+                  Row: {
+                    "activo": boolean,"created_at": string,"id": number,"nombre": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre": string,"orden"?: number
+                  }
+                  Update: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_entregas": {
+                  Row: {
+                    "archivo_path": string,"created_at": string,"evento_id": string,"id": string,"nombre_archivo": string,"nota": string | null,"persona_id": string | null,"proyecto_id": string | null,"subida_por": string | null,"tamano_bytes": number,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "archivo_path": string,"created_at"?: string,"evento_id": string,"id"?: string,"nombre_archivo": string,"nota"?: string | null,"persona_id"?: string | null,"proyecto_id"?: string | null,"subida_por"?: string | null,"tamano_bytes": number,"version": number
+                  }
+                  Update: {
+                    "archivo_path"?: string,"created_at"?: string,"evento_id"?: string,"id"?: string,"nombre_archivo"?: string,"nota"?: string | null,"persona_id"?: string | null,"proyecto_id"?: string | null,"subida_por"?: string | null,"tamano_bytes"?: number,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_entregas_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_subida_por_fkey"
+      columns: ["subida_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_entregas_devoluciones": {
+                  Row: {
+                    "autor_id": string | null,"created_at": string,"entrega_id": string,"id": string,"respuesta_a": string | null,"texto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "autor_id"?: string | null,"created_at"?: string,"entrega_id": string,"id"?: string,"respuesta_a"?: string | null,"texto": string
+                  }
+                  Update: {
+                    "autor_id"?: string | null,"created_at"?: string,"entrega_id"?: string,"id"?: string,"respuesta_a"?: string | null,"texto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_entregas_devoluciones_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_devoluciones_entrega_id_fkey"
+      columns: ["entrega_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_entregas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_entregas_devoluciones_respuesta_a_fkey"
+      columns: ["respuesta_a"]
+isOneToOne: false
+      referencedRelation: "alumnos_entregas_devoluciones"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_ideas": {
+                  Row: {
+                    "a_quien_le_pasa": string | null,"autor_id": string | null,"como_seria_resuelto": string | null,"created_at": string,"descripcion": string,"estado": string,"id": string,"interes_id": number | null,"que_se_intento": string | null,"titulo": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "a_quien_le_pasa"?: string | null,"autor_id"?: string | null,"como_seria_resuelto"?: string | null,"created_at"?: string,"descripcion": string,"estado"?: string,"id"?: string,"interes_id"?: number | null,"que_se_intento"?: string | null,"titulo": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "a_quien_le_pasa"?: string | null,"autor_id"?: string | null,"como_seria_resuelto"?: string | null,"created_at"?: string,"descripcion"?: string,"estado"?: string,"id"?: string,"interes_id"?: number | null,"que_se_intento"?: string | null,"titulo"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_ideas_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_interes_id_fkey"
+      columns: ["interes_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_intereses_maestro"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_ideas_interesados": {
+                  Row: {
+                    "created_at": string,"idea_id": string,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"idea_id": string,"persona_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"idea_id"?: string,"persona_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_ideas_interesados_idea_id_fkey"
+      columns: ["idea_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_interesados_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_ideas_mensajes": {
+                  Row: {
+                    "autor_id": string | null,"created_at": string,"id": string,"idea_id": string,"respuesta_a": string | null,"texto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "autor_id"?: string | null,"created_at"?: string,"id"?: string,"idea_id": string,"respuesta_a"?: string | null,"texto": string
+                  }
+                  Update: {
+                    "autor_id"?: string | null,"created_at"?: string,"id"?: string,"idea_id"?: string,"respuesta_a"?: string | null,"texto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_ideas_mensajes_autor_id_fkey"
+      columns: ["autor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_mensajes_idea_id_fkey"
+      columns: ["idea_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_mensajes_respuesta_a_fkey"
+      columns: ["respuesta_a"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas_mensajes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_ideas_reportes": {
+                  Row: {
+                    "created_at": string,"id": string,"idea_id": string,"mensaje_id": string | null,"motivo": string,"persona_id": string,"resuelto": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"idea_id": string,"mensaje_id"?: string | null,"motivo": string,"persona_id": string,"resuelto"?: boolean
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"idea_id"?: string,"mensaje_id"?: string | null,"motivo"?: string,"persona_id"?: string,"resuelto"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_ideas_reportes_idea_id_fkey"
+      columns: ["idea_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_reportes_mensaje_id_fkey"
+      columns: ["mensaje_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas_mensajes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_ideas_reportes_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_intereses": {
+                  Row: {
+                    "estrellas": number,"interes_id": number,"persona_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "estrellas": number,"interes_id": number,"persona_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "estrellas"?: number,"interes_id"?: number,"persona_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_intereses_interes_id_fkey"
+      columns: ["interes_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_intereses_maestro"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_intereses_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_intereses_historial": {
+                  Row: {
+                    "cambiado_en": string,"estrellas_antes": number | null,"estrellas_despues": number | null,"id": number,"interes_id": number,"persona_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id": number,"persona_id": string
+                  }
+                  Update: {
+                    "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_intereses_maestro": {
+                  Row: {
+                    "activo": boolean,"created_at": string,"id": number,"nombre": string,"orden": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre": string,"orden"?: number
+                  }
+                  Update: {
+                    "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_perfiles": {
+                  Row: {
+                    "busca_equipo": boolean,"persona_id": string,"sobre_mi": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "busca_equipo"?: boolean,"persona_id": string,"sobre_mi"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "busca_equipo"?: boolean,"persona_id"?: string,"sobre_mi"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_perfiles_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_documentos": {
+                  Row: {
+                    "bytes": number,"created_at": string,"id": string,"nombre": string,"proyecto_id": string,"ruta": string,"subido_por": string | null,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bytes": number,"created_at"?: string,"id"?: string,"nombre": string,"proyecto_id": string,"ruta": string,"subido_por"?: string | null,"tipo": string
+                  }
+                  Update: {
+                    "bytes"?: number,"created_at"?: string,"id"?: string,"nombre"?: string,"proyecto_id"?: string,"ruta"?: string,"subido_por"?: string | null,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_documentos_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_documentos_subido_por_fkey"
+      columns: ["subido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_material_usos": {
+                  Row: {
+                    "created_at": string,"id": number,"jurado_id": string,"material_id": string,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: never,"jurado_id": string,"material_id": string,"tipo": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: never,"jurado_id"?: string,"material_id"?: string,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_material_usos_jurado_id_fkey"
+      columns: ["jurado_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_material_usos_material_id_fkey"
+      columns: ["material_id"]
+isOneToOne: false
+      referencedRelation: "austral_materiales"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_materiales": {
+                  Row: {
+                    "aprobado_at": string | null,"aprobado_por": string | null,"aviso": string | null,"contexto": string | null,"documentos": (string)[],"estado": string,"fuentes": (string)[],"generado_at": string | null,"generado_por": string | null,"guion": string | null,"id": string,"problematica": string | null,"proyecto_id": string,"sector": string | null,"segundos_generacion": number | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aprobado_at"?: string | null,"aprobado_por"?: string | null,"aviso"?: string | null,"contexto"?: string | null,"documentos"?: (string)[],"estado"?: string,"fuentes"?: (string)[],"generado_at"?: string | null,"generado_por"?: string | null,"guion"?: string | null,"id"?: string,"problematica"?: string | null,"proyecto_id": string,"sector"?: string | null,"segundos_generacion"?: number | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "aprobado_at"?: string | null,"aprobado_por"?: string | null,"aviso"?: string | null,"contexto"?: string | null,"documentos"?: (string)[],"estado"?: string,"fuentes"?: (string)[],"generado_at"?: string | null,"generado_por"?: string | null,"guion"?: string | null,"id"?: string,"problematica"?: string | null,"proyecto_id"?: string,"sector"?: string | null,"segundos_generacion"?: number | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_materiales_aprobado_por_fkey"
+      columns: ["aprobado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_materiales_generado_por_fkey"
+      columns: ["generado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_materiales_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: true
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_participaciones": {
                   Row: {
                     "actividad": string,"creado_por": string,"created_at": string,"evento_id": string | null,"fecha": string,"id": string,"persona_id": string
                   }
@@ -499,6 +883,104 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"mentores_encuestas": {
+                  Row: {
+                    "con_quien": string,"created_at": string,"escalada_at": string | null,"estado": string,"grave": boolean | null,"grave_motivo": string | null,"id": string,"mail_error": string | null,"mail_estado": string | null,"mejorar": string | null,"papel": string,"persona_id": string,"proyecto_nombre": string,"puntaje": number | null,"recordatorio_at": string | null,"respondida_at": string | null,"reunion_id": string,"reunion_inicio": string,"sirvio": string | null,"urgente": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "con_quien": string,"created_at"?: string,"escalada_at"?: string | null,"estado"?: string,"grave"?: boolean | null,"grave_motivo"?: string | null,"id"?: string,"mail_error"?: string | null,"mail_estado"?: string | null,"mejorar"?: string | null,"papel": string,"persona_id": string,"proyecto_nombre": string,"puntaje"?: number | null,"recordatorio_at"?: string | null,"respondida_at"?: string | null,"reunion_id": string,"reunion_inicio": string,"sirvio"?: string | null,"urgente"?: string | null
+                  }
+                  Update: {
+                    "con_quien"?: string,"created_at"?: string,"escalada_at"?: string | null,"estado"?: string,"grave"?: boolean | null,"grave_motivo"?: string | null,"id"?: string,"mail_error"?: string | null,"mail_estado"?: string | null,"mejorar"?: string | null,"papel"?: string,"persona_id"?: string,"proyecto_nombre"?: string,"puntaje"?: number | null,"recordatorio_at"?: string | null,"respondida_at"?: string | null,"reunion_id"?: string,"reunion_inicio"?: string,"sirvio"?: string | null,"urgente"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_encuestas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_encuestas_reunion_id_fkey"
+      columns: ["reunion_id"]
+isOneToOne: false
+      referencedRelation: "mentores_reuniones"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_feedback_resumenes": {
+                  Row: {
+                    "aviso": string | null,"con_ia": boolean,"created_at": string,"id": string,"pedidas": number,"respuestas": number,"resumen": string,"reunion_id": string,"util": boolean | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "aviso"?: string | null,"con_ia": boolean,"created_at"?: string,"id"?: string,"pedidas": number,"respuestas": number,"resumen": string,"reunion_id": string,"util"?: boolean | null
+                  }
+                  Update: {
+                    "aviso"?: string | null,"con_ia"?: boolean,"created_at"?: string,"id"?: string,"pedidas"?: number,"respuestas"?: number,"resumen"?: string,"reunion_id"?: string,"util"?: boolean | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_feedback_resumenes_reunion_id_fkey"
+      columns: ["reunion_id"]
+isOneToOne: true
+      referencedRelation: "mentores_reuniones"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_resumenes": {
+                  Row: {
+                    "asunto": string,"aviso": string | null,"aviso_mail_at": string | null,"aviso_util": boolean | null,"con_ia": boolean,"created_at": string,"email": string,"error": string | null,"estado": string,"html": string,"id": string,"le_sirvio": boolean | null,"leido_at": string | null,"minutos_ahorrados": number | null,"programado_para": string | null,"resend_id": string | null,"reunion_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "asunto": string,"aviso"?: string | null,"aviso_mail_at"?: string | null,"aviso_util"?: boolean | null,"con_ia": boolean,"created_at"?: string,"email": string,"error"?: string | null,"estado": string,"html": string,"id"?: string,"le_sirvio"?: boolean | null,"leido_at"?: string | null,"minutos_ahorrados"?: number | null,"programado_para"?: string | null,"resend_id"?: string | null,"reunion_id": string
+                  }
+                  Update: {
+                    "asunto"?: string,"aviso"?: string | null,"aviso_mail_at"?: string | null,"aviso_util"?: boolean | null,"con_ia"?: boolean,"created_at"?: string,"email"?: string,"error"?: string | null,"estado"?: string,"html"?: string,"id"?: string,"le_sirvio"?: boolean | null,"leido_at"?: string | null,"minutos_ahorrados"?: number | null,"programado_para"?: string | null,"resend_id"?: string | null,"reunion_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_resumenes_reunion_id_fkey"
+      columns: ["reunion_id"]
+isOneToOne: false
+      referencedRelation: "mentores_reuniones"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_reuniones": {
+                  Row: {
+                    "cancelada": boolean,"cargada_por": string | null,"created_at": string,"feedback_pedido_at": string | null,"id": string,"inicio": string,"lugar": string | null,"mentor_id": string,"notas": string | null,"proximos_pasos": string | null,"proyecto_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cancelada"?: boolean,"cargada_por"?: string | null,"created_at"?: string,"feedback_pedido_at"?: string | null,"id"?: string,"inicio": string,"lugar"?: string | null,"mentor_id": string,"notas"?: string | null,"proximos_pasos"?: string | null,"proyecto_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cancelada"?: boolean,"cargada_por"?: string | null,"created_at"?: string,"feedback_pedido_at"?: string | null,"id"?: string,"inicio"?: string,"lugar"?: string | null,"mentor_id"?: string,"notas"?: string | null,"proximos_pasos"?: string | null,"proyecto_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_reuniones_cargada_por_fkey"
+      columns: ["cargada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_reuniones_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_reuniones_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"personas": {
                   Row: {
                     "created_at": string,"email": string,"id": string,"nombre": string,"rol": Database["public"]['Enums']["rol"]
@@ -559,7 +1041,28 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "jurado_criterios_aplicar":
+            "alumnos_guardar_perfil":
+{ Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
+                           },
+"alumnos_soy_integrante":
+{ Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"alumnos_soy_mentor":
+{ Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"alumnos_yo":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"austral_me_toca":
+{ Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"austral_mis_proyectos":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
+"austral_yo":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"jurado_criterios_aplicar":
 { Args: { "p_evento": string,"p_origen"?: string }; Returns: number
                            },
 "jurado_criterios_fijar_usados":
