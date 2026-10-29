@@ -1,16 +1,5 @@
--- MENTORES: perfil de cada mentor + agente de match proyecto–mentor.
+-- MENTORES: agente de match proyecto–mentor. Los perfiles los lee de mentores_perfil (agente de carga de perfil).
 -- El agente solo sugiere (hasta 3 por pedido); el coordinador (admin) acepta o rechaza.
-
--- Perfil del mentor. Todo opcional y en texto libre: se completa de a poco, como un documento.
-create table mentores_perfiles (
-  persona_id uuid primary key references personas(id) on delete cascade,
-  formacion text, -- qué estudió: carrera, posgrados, cursos
-  especialidades text,
-  industrias text,
-  experiencia text,
-  cupo_proyectos int check (cupo_proyectos > 0), -- null = sin límite
-  updated_at timestamptz not null default now()
-);
 
 -- Cada vez que el coordinador le pide sugerencias al agente para un proyecto.
 create table mentores_match_pedidos (
@@ -45,14 +34,6 @@ create table mentores_sugerencias (
   calificado_at timestamptz,
   created_at timestamptz not null default now()
 );
-
--- Perfiles: el admin ve y edita todos; cada mentor solo el suyo.
-alter table mentores_perfiles enable row level security;
-create policy "admin todo" on mentores_perfiles for all to authenticated
-  using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
-create policy "mentor lo suyo" on mentores_perfiles for all to authenticated
-  using (mi_rol() = 'mentor' and persona_id = (select id from personas where lower(email) = lower(auth.jwt() ->> 'email')))
-  with check (mi_rol() = 'mentor' and persona_id = (select id from personas where lower(email) = lower(auth.jwt() ->> 'email')));
 
 -- Pedidos y sugerencias: solo el coordinador (admin).
 alter table mentores_match_pedidos enable row level security;

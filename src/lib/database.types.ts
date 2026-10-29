@@ -871,6 +871,38 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"mentores_match_pedidos": {
+                  Row: {
+                    "alerta_revisada_at": string | null,"alerta_revisada_por": string | null,"aviso": string | null,"created_at": string,"id": string,"pedido_por": string | null,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id": string
+                  }
+                  Update: {
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_match_pedidos_alerta_revisada_por_fkey"
+      columns: ["alerta_revisada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_match_pedidos_pedido_por_fkey"
+      columns: ["pedido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_match_pedidos_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"mentores_perfil": {
                   Row: {
                     "anios_experiencia": number | null,"areas_ayuda": string | null,"bio": string | null,"cargo": string | null,"created_at": string,"ediciones_post_publicacion": number,"empresa": string | null,"estado": string,"industria": string | null,"iniciado_at": string,"linkedin_url": string | null,"persona_id": string,"publicado_at": string | null,"texto_original": string | null,"updated_at": string
@@ -960,6 +992,56 @@ isOneToOne: false
       columns: ["proyecto_id"]
 isOneToOne: false
       referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"mentores_sugerencias": {
+                  Row: {
+                    "afinidad": number,"calificado_at": string | null,"calificado_por": string | null,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"mentor_id": string,"minutos_ahorrados": number | null,"motivo": string,"motivo_quitado": string | null,"opinion": string | null,"pedido_id": string,"proyecto_id": string,"quitado_at": string | null,"quitado_por": string | null,"satisfaccion": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "afinidad": number,"calificado_at"?: string | null,"calificado_por"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id": string,"minutos_ahorrados"?: number | null,"motivo": string,"motivo_quitado"?: string | null,"opinion"?: string | null,"pedido_id": string,"proyecto_id": string,"quitado_at"?: string | null,"quitado_por"?: string | null,"satisfaccion"?: number | null
+                  }
+                  Update: {
+                    "afinidad"?: number,"calificado_at"?: string | null,"calificado_por"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"minutos_ahorrados"?: number | null,"motivo"?: string,"motivo_quitado"?: string | null,"opinion"?: string | null,"pedido_id"?: string,"proyecto_id"?: string,"quitado_at"?: string | null,"quitado_por"?: string | null,"satisfaccion"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "mentores_sugerencias_calificado_por_fkey"
+      columns: ["calificado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_pedido_id_fkey"
+      columns: ["pedido_id"]
+isOneToOne: false
+      referencedRelation: "mentores_match_pedidos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "mentores_sugerencias_quitado_por_fkey"
+      columns: ["quitado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
       referencedColumns: ["id"]
     }
                   ]

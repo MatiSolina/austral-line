@@ -139,6 +139,7 @@ async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">,
 
 export default async function Match({ searchParams }: PageProps<"/mentores/match">) {
   await requireRol();
+  const sinClaveIA = !process.env.AI_GATEWAY_API_KEY;
   const supabase = await createClient();
   const [proyectos, mentores, sugerencias, pedidos] = await Promise.all([
     supabase.from("proyectos").select("id, nombre, descripcion, estado").order("nombre"),
@@ -175,6 +176,13 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         sugerencias: nadie queda asignado hasta que lo aceptás.
       </p>
       <Suspense><MensajeError searchParams={searchParams} /></Suspense>
+
+      {sinClaveIA && (
+        <p className="mb-8 max-w-2xl border p-4 text-sm text-[#666]">
+          El agente no está disponible porque falta la clave de IA (AI_GATEWAY_API_KEY). Igual podés ver las
+          métricas, los mentores asignados, quitarlos y calificar los matches; solo no se pueden pedir sugerencias nuevas.
+        </p>
+      )}
 
       {alertas.length > 0 && (
         <section id="alertas" className="mb-10 border border-primary p-6">
@@ -226,7 +234,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 </div>
                 <form action={pedirSugerencias}>
                   <input type="hidden" name="proyecto_id" value={p.id} />
-                  <BotonEnviar enviando="El agente está pensando…">
+                  <BotonEnviar enviando="El agente está pensando…" disabled={sinClaveIA}>
                     {deEste.length ? "Pedir más sugerencias" : "Pedir sugerencias al agente"}
                   </BotonEnviar>
                 </form>
@@ -281,7 +289,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                 <>
                 <p className="border-t pt-4 text-sm">
                   <span className="font-medium">Porcentaje de acierto</span>
-                  <span className="text-xs text-[#666]"> · qué tanto se parece la formación y experiencia del mentor a este proyecto</span>
+                  <span className="text-xs text-[#666]"> · qué tanto se parece la trayectoria del mentor a este proyecto</span>
                 </p>
                 <ul className="divide-y">
                   {pendientes.map((s) => (

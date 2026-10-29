@@ -100,6 +100,15 @@ async function PanelAdmin() {
   if (errorMentores) throw errorMentores;
   if (errorEventos) throw errorEventos;
 
+  // Match proyecto–mentor: cuántos proyectos acompaña cada uno y alertas del agente sin revisar.
+  const [asignaciones, alertasMatch] = await Promise.all([
+    supabase.from("mentores_sugerencias").select("mentor_id").eq("estado", "aceptada"),
+    supabase.from("mentores_match_pedidos").select("id", { count: "exact", head: true })
+      .not("aviso", "is", null).is("alerta_revisada_at", null),
+  ]);
+  if (asignaciones.error) throw asignaciones.error;
+  if (alertasMatch.error) throw alertasMatch.error;
+
   const { count: autocorrecciones, error: errorAutocorrecciones } = await supabase
     .from("mentores_perfil_eventos").select("id", { count: "exact", head: true }).eq("tipo", "correccion_ia");
   if (errorAutocorrecciones) throw errorAutocorrecciones;
@@ -119,8 +128,19 @@ async function PanelAdmin() {
     <>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <h1 className="font-serif text-2xl">Mentores</h1>
-        <EnlacesReuniones esAdmin />
+        <div className="flex flex-wrap items-center gap-6">
+          <EnlacesReuniones esAdmin />
+          <Link href="/mentores/match" className={buttonVariants()}>Match de proyectos</Link>
+        </div>
       </div>
+
+      {!!alertasMatch.count && (
+        <Link href="/mentores/match#alertas" className="mb-6 flex items-center gap-2 border border-primary p-4 text-sm hover:bg-card">
+          <TriangleAlert className="size-4" />
+          Tenés {alertasMatch.count} {alertasMatch.count === 1 ? "alerta" : "alertas"} del Match sin revisar
+          <span className="underline underline-offset-4">Ver alertas</span>
+        </Link>
+      )}
 
       <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
@@ -198,7 +218,7 @@ async function PanelAdmin() {
 
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Perfil</TableHead><TableHead /></TableRow>
+          <TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead><TableHead>Perfil</TableHead><TableHead>Proyectos</TableHead><TableHead /></TableRow>
         </TableHeader>
         <TableBody>
           {mentores.map((m) => (
@@ -212,6 +232,7 @@ async function PanelAdmin() {
                   {m.mentores_perfil?.estado === "publicado" ? "Publicado" : m.mentores_perfil ? "Borrador" : "Sin empezar"}
                 </Badge>
               </TableCell>
+              <TableCell>{asignaciones.data.filter((a) => a.mentor_id === m.id).length}</TableCell>
               <TableCell>
                 <Link href={`/mentores/${m.id}`} className="inline-flex items-center gap-1 text-[#666] hover:text-primary">
                   Ver perfil <ArrowRight className="size-3.5" />
