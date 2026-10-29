@@ -58,7 +58,8 @@ with ev as (
 insert into jurado_puntajes (evaluacion_id, criterio_id, puntaje)
 select ev.id, c.id,
   case when p.nombre = 'AgroSense' then 9 - c.orden + 1 else 4 + c.orden end
-from ev join proyectos p on p.id = ev.proyecto_id cross join jurado_criterios c;
+from ev join proyectos p on p.id = ev.proyecto_id cross join jurado_criterios c
+where not c.es_base; -- las notas de ejemplo usan los criterios originales, no la lista base
 
 -- GRUPO JURADO: ficha de ejemplo para AgroSense (Reciclá queda sin ficha para ver ese caso).
 insert into jurado_fichas (proyecto_id, problema, solucion, propuesta_valor, mercado, modelo_negocio, etapa, traccion, link_presentacion)
@@ -79,15 +80,128 @@ insert into proyecto_integrantes
   select p.id, pe.id from proyectos p, personas pe
   where p.nombre = 'Reciclá' and pe.email = 'carla@alumnos.austral.edu.ar';
 
--- MENTORES: dos mentores más (sin login) y perfiles para probar el match.
-insert into personas (nombre, email, rol) values
-  ('Diego Mentor', 'diego@empresa.com', 'mentor'),
-  ('Lucía Mentora', 'lucia@empresa.com', 'mentor');
+-- GRUPO JURADO: la evaluación de Lucía a Reciclá es del Kickoff (las dos están en el Salón B).
+-- La de AgroSense queda sin evento, como las notas cargadas antes de separar por evento.
+update jurado_evaluaciones set evento_id = (select id from eventos where nombre = 'Kickoff')
+where proyecto_id = (select id from proyectos where nombre = 'Reciclá')
+  and jurado_id = (select id from personas where email = 'lucia@fondo.com');
 
-insert into mentores_perfiles (persona_id, formacion, especialidades, industrias, experiencia, cupo_proyectos)
-select id, v.formacion, v.especialidades, v.industrias, v.experiencia, v.cupo from personas
-join (values
-  ('marta@empresa.com', 'Ingeniera agrónoma (UBA)', 'Producto, hardware, operaciones', 'Agro, IoT', '12 años liderando producto en una agtech; armó la red de distribuidores en el interior.', 3),
-  ('diego@empresa.com', 'Licenciado en Economía, MBA (IAE)', 'Finanzas, levantamiento de capital', 'Fintech, SaaS', 'Ex VC. Ayudó a 20 startups a cerrar su primera ronda.', 2),
-  ('lucia@empresa.com', 'Licenciada en Ciencias de la Educación', 'Marketing digital, growth', 'Educación, marketplaces', 'Fundó una plataforma de cursos online con 50 mil alumnos.', null)
-) as v(email, formacion, especialidades, industrias, experiencia, cupo) using (email);
+-- GRUPO JURADO: el Kickoff ya tiene notas, así que queda con los criterios que esas notas usaron (como al migrar datos reales).
+-- El Demo Day no tiene criterios todavía: los recibe de la lista base cuando se le arma el primer salón, o desde Criterios.
+select jurado_criterios_fijar_usados(id) from eventos where nombre = 'Kickoff';
+
+-- GRUPO JURADO: el Kickoff organizado en dos salones (el Demo Day queda sin organizar para ver ese caso).
+insert into jurado_salones (evento_id, nombre, orden)
+select e.id, s.nombre, s.orden from eventos e, (values ('Salón A', 1), ('Salón B', 2)) as s(nombre, orden)
+where e.nombre = 'Kickoff';
+
+insert into jurado_salon_proyectos (evento_id, salon_id, proyecto_id)
+select s.evento_id, s.id, p.id from jurado_salones s
+join (values ('Salón A', 'AgroSense'), ('Salón B', 'Reciclá')) as a(salon, proyecto) on a.salon = s.nombre
+join proyectos p on p.nombre = a.proyecto;
+
+insert into jurado_salon_jurados (evento_id, salon_id, jurado_id)
+select s.evento_id, s.id, pe.id from jurado_salones s
+join (values ('Salón A', 'julio@empresa.com'), ('Salón B', 'lucia@fondo.com')) as a(salon, email) on a.salon = s.nombre
+join personas pe on pe.email = a.email;
+
+-- GRUPO MENTORES: más mentores en distintos estados (publicado prolijo, publicado con
+-- correcciones, borrador abandonado, sin empezar), para que el panel de métricas del admin
+-- tenga sentido con más de un caso (con solo Marta todo daba 100%/0.0hs/vacío).
+insert into personas (nombre, email, rol) values
+  ('Pablo Product', 'pablo@empresa.com', 'mentor'),
+  ('Rocío Finanzas', 'rocio@empresa.com', 'mentor'),
+  ('Diego Ventas', 'diego@empresa.com', 'mentor'),
+  ('Sofía Marketing', 'sofia@empresa.com', 'mentor');
+select pg_temp.crear_login(email) from personas
+  where email in ('pablo@empresa.com', 'rocio@empresa.com', 'diego@empresa.com', 'sofia@empresa.com');
+
+insert into mentores_perfil (persona_id, empresa, cargo, industria, anios_experiencia, bio, areas_ayuda, linkedin_url, estado, iniciado_at, publicado_at, ediciones_post_publicacion)
+select id, 'Mercado Libre', 'Product Manager', 'E-commerce', 6,
+  'Lidero equipos de producto en marketplaces desde hace 6 años.',
+  'Priorización de producto y research con usuarios.',
+  'https://linkedin.com/in/pabloproduct',
+  'publicado', now() - interval '3 days', now() - interval '3 days' + interval '40 minutes', 0
+from personas where email = 'pablo@empresa.com';
+
+insert into mentores_perfil (persona_id, empresa, cargo, industria, anios_experiencia, bio, areas_ayuda, linkedin_url, estado, iniciado_at, publicado_at, ediciones_post_publicacion)
+select id, 'BBVA', 'CFO', 'Finanzas', 10,
+  'Ayudo a startups a armar su modelo financiero y a prepararse para levantar capital.',
+  'Modelo financiero y ronda de inversión.',
+  'https://linkedin.com/in/rociofinanzas',
+  'publicado', now() - interval '5 days', now() - interval '5 days' + interval '3 hours', 2
+from personas where email = 'rocio@empresa.com';
+
+insert into mentores_perfil (persona_id, texto_original, estado, iniciado_at, updated_at)
+select id, 'trabajo en ventas b2b hace años, puedo ayudar con pricing', 'borrador', now() - interval '12 days', now() - interval '12 days'
+from personas where email = 'diego@empresa.com';
+-- Sofía Marketing queda sin fila en mentores_perfil: es el caso "todavía no empezó".
+
+insert into mentores_perfil_eventos (persona_id, tipo, detalle)
+select p.id, 'correccion_ia', jsonb_build_object('campo', 'linkedin_url', 'razon', 'le faltaba https://, se completó solo')
+from personas p where p.email in ('pablo@empresa.com', 'rocio@empresa.com');
+insert into mentores_perfil_eventos (persona_id, tipo, detalle)
+select p.id, 'correccion_ia', jsonb_build_object('campo', 'industria', 'razon', 'no estaba sustentado en lo que escribió; se descartó')
+from personas p where p.email = 'rocio@empresa.com';
+
+-- GRUPO MENTORES: reuniones de Marta para probar el resumen pre-reunión. Una pasada con notas y dos próximas
+-- (la de Tutorly es la primera y no tiene lugar cargado, para ver cómo muestra lo que falta).
+insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar, notas, proximos_pasos)
+select p.id, m.id, now() + v.cuando, v.lugar, v.notas, v.pasos
+from (values
+  ('AgroSense', interval '-8 days', 'https://meet.google.com/abc-defg-hij',
+    'Revisamos el piloto en Maipú: los sensores andan bien, pero los productores no abren la app todos los días.',
+    'Probar alertas por WhatsApp con 2 productores y traer números de uso.'),
+  ('AgroSense', interval '3 days', 'https://meet.google.com/abc-defg-hij', null, null),
+  ('Tutorly', interval '2 days', null, null, null)
+) as v(proyecto, cuando, lugar, notas, pasos)
+join proyectos p on p.nombre = v.proyecto
+join personas m on m.email = 'marta@empresa.com';
+
+-- GRUPO ALUMNOS: alumnos de prueba con perfil, para probar "Compañeros afines".
+-- Logins con contraseña austral123: carla@, diego@ y elena@alumnos.austral.edu.ar. Ana arranca sin perfil.
+-- Carla ya la suma el bloque de Jurado (integrante de Reciclá); acá solo se agrega si falta.
+insert into personas (nombre, email, rol) values
+  ('Carla Alumna', 'carla@alumnos.austral.edu.ar', 'alumno'),
+  ('Diego Alumno', 'diego@alumnos.austral.edu.ar', 'alumno'),
+  ('Elena Alumna', 'elena@alumnos.austral.edu.ar', 'alumno')
+on conflict (email) do nothing;
+
+select pg_temp.crear_login(email) from personas
+  where email in ('carla@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar', 'elena@alumnos.austral.edu.ar');
+
+insert into alumnos_perfiles (persona_id, sobre_mi, busca_equipo)
+select pe.id, v.sobre_mi, v.busca_equipo
+from personas pe join (values
+  ('carla@alumnos.austral.edu.ar', 'Me interesa mejorar el acceso a la salud en el interior.', true),
+  ('diego@alumnos.austral.edu.ar', 'Vengo de una familia de productores, me gustaría algo de agro.', true),
+  ('elena@alumnos.austral.edu.ar', null, true),
+  ('bruno@alumnos.austral.edu.ar', 'Ya estoy en Tutorly.', false)
+) as v(email, sobre_mi, busca_equipo) on v.email = pe.email;
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Marketing'),
+  ('diego@alumnos.austral.edu.ar', 'Agronegocios'),
+  ('elena@alumnos.austral.edu.ar', 'Administración de Empresas'),
+  ('bruno@alumnos.austral.edu.ar', 'Negocios Digitales')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera;
+
+-- Cuánto le interesa a cada uno cada tema (1 a 5 estrellas).
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas
+from (values
+  ('carla@alumnos.austral.edu.ar', 'Salud', 5), ('carla@alumnos.austral.edu.ar', 'Impacto social', 4),
+  ('carla@alumnos.austral.edu.ar', 'Finanzas y fintech', 1), ('carla@alumnos.austral.edu.ar', 'Agro y alimentos', 2),
+  ('diego@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('diego@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 4),
+  ('diego@alumnos.austral.edu.ar', 'Moda y diseño', 1), ('diego@alumnos.austral.edu.ar', 'Educación', 3),
+  ('elena@alumnos.austral.edu.ar', 'Agro y alimentos', 4), ('elena@alumnos.austral.edu.ar', 'Finanzas y fintech', 5),
+  ('elena@alumnos.austral.edu.ar', 'Salud', 1), ('elena@alumnos.austral.edu.ar', 'Consumo y retail', 3),
+  ('bruno@alumnos.austral.edu.ar', 'Educación', 5), ('bruno@alumnos.austral.edu.ar', 'Tecnología y software', 5),
+  ('bruno@alumnos.austral.edu.ar', 'Agro y alimentos', 2), ('bruno@alumnos.austral.edu.ar', 'Salud', 3)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes;
