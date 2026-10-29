@@ -133,6 +133,78 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"alumnos_grupo_intereses": {
+                  Row: {
+                    "estrellas": number,"interes_id": number,"proyecto_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "estrellas": number,"interes_id": number,"proyecto_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "estrellas"?: number,"interes_id"?: number,"proyecto_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_grupo_intereses_interes_id_fkey"
+      columns: ["interes_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_intereses_maestro"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_grupo_intereses_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_grupo_intereses_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_grupo_intereses_calculo": {
+                  Row: {
+                    "calculado_at": string,"calculado_por": string | null,"integrantes": (string)[],"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "calculado_at"?: string,"calculado_por"?: string | null,"integrantes": (string)[],"proyecto_id": string
+                  }
+                  Update: {
+                    "calculado_at"?: string,"calculado_por"?: string | null,"integrantes"?: (string)[],"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_grupo_intereses_calculo_calculado_por_fkey"
+      columns: ["calculado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_grupo_intereses_calculo_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: true
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_grupo_intereses_historial": {
+                  Row: {
+                    "created_at": string,"estrellas_antes": number | null,"estrellas_despues": number | null,"id": number,"interes_id": number,"persona_id": string | null,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id": number,"persona_id"?: string | null,"proyecto_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string | null,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"alumnos_ideas": {
                   Row: {
                     "a_quien_le_pasa": string | null,"autor_id": string | null,"como_seria_resuelto": string | null,"created_at": string,"descripcion": string,"estado": string,"id": string,"interes_id": number | null,"que_se_intento": string | null,"titulo": string,"updated_at": string
@@ -1041,7 +1113,13 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "alumnos_guardar_perfil":
+            "alumnos_calcular_intereses_grupo":
+{ Args: { "p_proyecto": string }; Returns: number
+                           },
+"alumnos_es_mi_proyecto":
+{ Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"alumnos_guardar_perfil":
 { Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
                            },
 "alumnos_soy_integrante":
