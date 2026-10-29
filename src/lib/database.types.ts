@@ -2,7 +2,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  
+
   "graphql_public": {
           Tables: {
             [_ in never]: never
@@ -61,7 +61,7 @@ isOneToOne: true
                     "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-                    
+
                   ]
                 },"alumnos_entregas": {
                   Row: {
@@ -287,7 +287,7 @@ isOneToOne: false
                     "cambiado_en"?: string,"estrellas_antes"?: number | null,"estrellas_despues"?: number | null,"id"?: never,"interes_id"?: number,"persona_id"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"alumnos_intereses_maestro": {
                   Row: {
@@ -301,7 +301,7 @@ isOneToOne: false
                     "activo"?: boolean,"created_at"?: string,"id"?: never,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-                    
+
                   ]
                 },"alumnos_perfiles": {
                   Row: {
@@ -318,6 +318,26 @@ isOneToOne: false
                     {
       foreignKeyName: "alumnos_perfiles_persona_id_fkey"
       columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_contactos_mentores": {
+                  Row: {
+                    "acepta_consultas_otros": boolean,"actualizado_at": string,"email_contacto": string,"especialidades": (string)[],"industria": string,"mentor_id": string,"modalidad": string,"publicado": boolean,"telefono_contacto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acepta_consultas_otros"?: boolean,"actualizado_at"?: string,"email_contacto"?: string,"especialidades"?: (string)[],"industria"?: string,"mentor_id": string,"modalidad"?: string,"publicado"?: boolean,"telefono_contacto"?: string
+                  }
+                  Update: {
+                    "acepta_consultas_otros"?: boolean,"actualizado_at"?: string,"email_contacto"?: string,"especialidades"?: (string)[],"industria"?: string,"mentor_id"?: string,"modalidad"?: string,"publicado"?: boolean,"telefono_contacto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_contactos_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
@@ -407,6 +427,64 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_solicitudes_contacto": {
+                  Row: {
+                    "alumno_id": string,"created_at": string,"estado": string,"id": string,"mentor_id": string,"motivo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alumno_id": string,"created_at"?: string,"estado"?: string,"id"?: string,"mentor_id": string,"motivo": string
+                  }
+                  Update: {
+                    "alumno_id"?: string,"created_at"?: string,"estado"?: string,"id"?: string,"mentor_id"?: string,"motivo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_solicitudes_contacto_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_solicitudes_contacto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_vinculos_mentor_proyecto": {
+                  Row: {
+                    "mentor_id": string,"proyecto_id": string,"registrado_at": string,"registrado_por": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "mentor_id": string,"proyecto_id": string,"registrado_at"?: string,"registrado_por": string
+                  }
+                  Update: {
+                    "mentor_id"?: string,"proyecto_id"?: string,"registrado_at"?: string,"registrado_por"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_vinculos_mentor_proyecto_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_vinculos_mentor_proyecto_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"eventos": {
                   Row: {
                     "created_at": string,"fin": string | null,"id": string,"inicio": string,"lugar": string | null,"nombre": string,"tipo": string
@@ -419,7 +497,7 @@ isOneToOne: true
                     "created_at"?: string,"fin"?: string | null,"id"?: string,"inicio"?: string,"lugar"?: string | null,"nombre"?: string,"tipo"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 },"jurado_ausencias": {
                   Row: {
@@ -465,7 +543,7 @@ isOneToOne: false
                     "created_at"?: string,"descripcion"?: string | null,"es_base"?: boolean,"id"?: string,"nombre"?: string,"orden"?: number
                   }
                   Relationships: [
-                    
+
                   ]
                 },"jurado_devolucion_envios": {
                   Row: {
@@ -935,7 +1013,7 @@ isOneToOne: false
                     "created_at"?: string,"email"?: string,"id"?: string,"nombre"?: string,"rol"?: Database["public"]['Enums']["rol"]
                   }
                   Relationships: [
-                    
+
                   ]
                 },"proyecto_integrantes": {
                   Row: {
@@ -975,7 +1053,7 @@ isOneToOne: false
                     "created_at"?: string,"descripcion"?: string | null,"estado"?: string,"id"?: string,"nombre"?: string
                   }
                   Relationships: [
-                    
+
                   ]
                 }
           }
@@ -1149,7 +1227,7 @@ export type CompositeTypes<
 export const Constants = {
   "graphql_public": {
           Enums: {
-            
+
           }
         },"public": {
           Enums: {
