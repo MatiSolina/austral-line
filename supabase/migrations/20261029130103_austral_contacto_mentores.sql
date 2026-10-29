@@ -89,6 +89,8 @@ create policy "alumno registra solicitudes propias" on austral_solicitudes_conta
   for insert to authenticated with check (
     mi_rol() = 'alumno' and estado = 'pendiente' and alumno_id = (
       select id from personas where lower(email) = lower(auth.jwt() ->> 'email')
+    ) and exists (
+      select 1 from personas where id = mentor_id and rol = 'mentor'
     )
   );
 create policy "alumno ve solicitudes propias" on austral_solicitudes_contacto
