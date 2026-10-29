@@ -83,7 +83,26 @@ export function mailResumen(d: DatosResumen, ia: Sintesis, url: string) {
     ] : []),
 
     boton("Ver la reunión y cargar notas", `${url}/mentores/reuniones/${reunion.id}`),
-    nota(`Lo armó el asistente de Mentores con lo cargado en la app${ia ? "" : " (esta vez sin la síntesis de IA)"}.`),
+    nota(`Lo armó el asistente de Mentores con lo cargado en la app${ia ? "" : " (esta vez sin la síntesis de IA)"}. `
+      + "Después de la reunión, contanos en la app si te sirvió."),
+  ].join("\n"));
+  return { asunto, html };
+}
+
+// Mail al coordinador cuando el asistente encuentra algo para mirar antes de la reunión.
+export function mailAviso(d: DatosResumen, aviso: string, url: string) {
+  const asunto = `Aviso del asistente de Mentores: ${d.proyecto.nombre}`;
+  const html = marco([
+    titulo(`Aviso sobre ${d.proyecto.nombre}`),
+    parrafo("Preparando el resumen pre-reunión, el asistente encontró algo que conviene que mires:"),
+    parrafo(`<strong>${multilinea(aviso)}</strong>`),
+    lista([
+      `<strong>Reunión:</strong> ${esc(fechaHora(d.reunion.inicio))}`,
+      `<strong>Mentor:</strong> ${esc(d.mentor.nombre)}`,
+      `<strong>Equipo:</strong> ${d.integrantes.length ? esc(d.integrantes.join(", ")) : "sin integrantes cargados"}`,
+    ]),
+    boton("Ver la reunión", `${url}/mentores/reuniones/${d.reunion.id}`),
+    nota("En la sección Reuniones podés marcar si el aviso te sirvió: así medimos si el asistente escala bien los problemas."),
   ].join("\n"));
   return { asunto, html };
 }
