@@ -117,6 +117,23 @@ export async function rehacerResumen(formData: FormData) {
   volver(`/mentores/reuniones/${id}`, resultado);
 }
 
+// El mentor cuenta si el resumen le sirvió y cuánto tiempo de preparación le ahorró: métricas de satisfacción y tiempo.
+export async function opinarResumen(formData: FormData) {
+  const persona = await requireRol("mentor");
+  const reunionId = String(formData.get("reunion_id"));
+  if (persona.rol !== "mentor") {
+    volver(`/mentores/reuniones/${reunionId}`, { ok: false, mensaje: "La opinión sobre el resumen la carga el mentor de la reunión." });
+  }
+  const minutos = Number.parseInt(String(formData.get("minutos") ?? ""), 10);
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("mentores_resumenes")
+    .update({ le_sirvio: formData.get("le_sirvio") === "si", minutos_ahorrados: minutos >= 0 ? minutos : null })
+    .eq("id", String(formData.get("resumen_id")));
+  if (error) throw error;
+  volver(`/mentores/reuniones/${reunionId}`, { ok: true, mensaje: "¡Gracias! Tu opinión sirve para mejorar el asistente." });
+}
+
 // El coordinador marca si el aviso del asistente le sirvió: es la métrica de "escaló bien los problemas".
 export async function marcarAviso(formData: FormData) {
   await requireRol(); // solo admin

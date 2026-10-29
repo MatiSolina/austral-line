@@ -11,7 +11,7 @@ import type { Database } from "@/lib/database.types";
 import { cancelarCorreo, enviarCorreo, modoPrueba } from "../_resend";
 import { ANTICIPACION, enEspera, LIMITE_RESEND, vigente, yaSalio } from "./estado";
 import { fechaCorta, fechaHora } from "./fechas";
-import { estadosProyecto, mailResumen, type DatosResumen, type Sintesis } from "./mail";
+import { estadosProyecto, mailAviso, mailResumen, type DatosResumen, type Sintesis } from "./mail";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 type Resumen = Pick<Database["public"]["Tables"]["mentores_resumenes"]["Row"], "id" | "estado" | "programado_para" | "resend_id" | "created_at">;
@@ -109,6 +109,19 @@ function avisoPorDatos(d: DatosResumen) {
   return null;
 }
 
+// "Avisar humano": el aviso le llega por mail en el momento a los coordinadores (admins), no solo queda en la app.
+async function avisarCoordinador(supabase: Supabase, datos: DatosResumen, aviso: string, url: string) {
+  const { data: coordinadores, error } = await supabase.from("personas").select("email").eq("rol", "admin");
+  if (error) throw error;
+  if (coordinadores.length === 0) return { ok: false, problema: "no hay coordinadores cargados en Miembros" };
+  const { asunto, html } = mailAviso(datos, aviso, url);
+  for (const { email } of coordinadores) {
+    const r = await enviarCorreo({ para: email, asunto, html });
+    if (!r.ok) return { ok: false, problema: r.error };
+  }
+  return { ok: true, problema: null };
+}
+
 export type Resultado = { ok: boolean; mensaje: string };
 
 // Arma (o rehace) el resumen de una reunión y lo programa 24 h antes. Si ya salió, no hace nada,
@@ -123,7 +136,7 @@ export async function prepararResumen(
       .select("id, inicio, lugar, cancelada, proyecto_id, mentor_id, proyectos(nombre, descripcion, estado), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre, email)")
       .eq("id", reunionId)
       .single(),
-    supabase.from("mentores_resumenes").select("id, estado, programado_para, resend_id, created_at").eq("reunion_id", reunionId),
+    supabase.from("mentores_resumenes").select("id, estado, programado_para, resend_id, created_at, aviso_mail_at").eq("reunion_id", reunionId),
   ]);
   if (reunion.error) throw reunion.error;
   if (resumenes.error) throw resumenes.error;
@@ -180,6 +193,12 @@ export async function prepararResumen(
   const envio = new Date(r.inicio).getTime() - ANTICIPACION;
   const programadoPara = envio > ahora + 60_000 ? new Date(envio).toISOString() : undefined; // si falta menos de 24 h, sale ya
   const resultado = await enviarCorreo({ para: datos.mentor.email, asunto, html, programadoPara });
+
+  // El aviso se escala por mail una sola vez: si el resumen anterior ya se lo había mandado al coordinador, no se repite.
+  const avisoPrevio = actual?.aviso_mail_at ?? null;
+  const escalado = aviso && !avisoPrevio && resultado.ok ? await avisarCoordinador(supabase, datos, aviso, url) : null;
+  const avisoMailAt = aviso ? avisoPrevio ?? (escalado?.ok ? new Date().toISOString() : null) : null;
+
   const { error } = await supabase.from("mentores_resumenes").insert({
     reunion_id: r.id,
     email: datos.mentor.email,
@@ -187,10 +206,12 @@ export async function prepararResumen(
     html,
     con_ia: !!ia,
     aviso,
+    aviso_mail_at: avisoMailAt,
     programado_para: programadoPara ?? null,
     estado: !resultado.ok ? "error" : modoPrueba() ? "simulado" : programadoPara ? "programado" : "enviado",
     resend_id: resultado.ok ? resultado.id : null,
-    error: [resultado.ok ? null : resultado.error, errorIA].filter(Boolean).join(" ") || null,
+    error: [resultado.ok ? null : resultado.error, errorIA, escalado?.ok === false ? `Aviso al coordinador: ${escalado.problema}` : null]
+      .filter(Boolean).join(" ") || null,
   });
   if (error) throw error;
   // Si el nuevo no se pudo mandar, el anterior (si había) sigue en pie.
@@ -202,7 +223,11 @@ export async function prepararResumen(
       ? `Resumen ${actual ? "actualizado" : "listo"}: le llega al mentor el ${fechaHora(programadoPara)}.`
       : "Resumen enviado al mentor (falta menos de 24 h para la reunión).",
     ...(!ia ? [hayIA() ? "Salió sin la síntesis de IA porque la IA no respondió." : "Salió sin la síntesis de IA porque falta la clave AI_GATEWAY_API_KEY."] : []),
-    ...(aviso ? ["El asistente dejó un aviso para el coordinador."] : []),
+    ...(!aviso ? [] : escalado?.ok
+      ? ["El asistente le mandó un aviso por mail al coordinador."]
+      : avisoPrevio
+        ? ["El aviso para el coordinador sigue en pie (ya se le había mandado por mail)."]
+        : [`El asistente dejó un aviso para el coordinador, pero no se lo pudo mandar por mail (${escalado?.problema}).`]),
     ...(problema ? [`Ojo: no se pudo cancelar el resumen anterior (${problema}).`] : []),
   ];
   const mensaje = partes.join(" ");

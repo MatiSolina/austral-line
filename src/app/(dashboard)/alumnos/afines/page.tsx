@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { calcularAfinidad } from "../_lib/afinidad";
+import { IdeasParaVos } from "../_components/ideas-para-vos";
 
 export default async function CompanerosAfines() {
   const persona = await requireRol("alumno");
@@ -112,6 +113,8 @@ export default async function CompanerosAfines() {
           ))}
         </ul>
       )}
+
+      <IdeasParaVos personaId={persona.id} estrellas={yo.estrellas} />
     </>
   );
 }

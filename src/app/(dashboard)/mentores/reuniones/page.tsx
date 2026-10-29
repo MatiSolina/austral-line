@@ -33,7 +33,7 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
   const [reuniones, proyectos, mentores] = await Promise.all([
     supabase
       .from("mentores_reuniones")
-      .select("id, inicio, lugar, notas, cancelada, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre), mentores_resumenes(id, estado, programado_para, created_at, leido_at, aviso, aviso_util)")
+      .select("id, inicio, lugar, notas, cancelada, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre), mentores_resumenes(id, estado, programado_para, created_at, leido_at, aviso, aviso_util, aviso_mail_at, le_sirvio, minutos_ahorrados)")
       .order("inicio"),
     supabase.from("proyectos").select("id, nombre").order("nombre"),
     supabase.from("personas").select("id, nombre").eq("rol", "mentor").order("nombre"),
@@ -100,11 +100,17 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
 
       {esAdmin && (
         <section className="mb-12">
-          <div className="grid gap-px border bg-border sm:grid-cols-3">
+          <div className="grid gap-px border bg-border sm:grid-cols-2 lg:grid-cols-5">
             {[
               { titulo: "Resumen a tiempo", valor: `${m.aTiempo} de ${m.debian}`, detalle: "reuniones que ya debían tenerlo" },
               { titulo: "Leídos", valor: `${m.leidos} de ${m.aTiempo}`, detalle: "el mentor lo abrió en la app" },
-              { titulo: "Avisos al coordinador", valor: String(m.avisos), detalle: `sirvieron: ${m.avisosUtiles} de ${m.avisosMarcados} marcados` },
+              { titulo: "Les sirvió", valor: `${m.lesSirvio} de ${m.opinaron}`, detalle: "mentores que opinaron" },
+              {
+                titulo: "Tiempo ahorrado",
+                valor: `${m.minutosAhorrados} min`,
+                detalle: m.conMinutos ? `promedio ${Math.round(m.minutosAhorrados / m.conMinutos)} min por reunión` : "ningún mentor lo cargó todavía",
+              },
+              { titulo: "Avisos al coordinador", valor: String(m.avisos), detalle: `${m.avisosPorMail} por mail · sirvieron ${m.avisosUtiles} de ${m.avisosMarcados}` },
             ].map((t) => (
               <div key={t.titulo} className="bg-background p-6">
                 <p className="text-sm text-[#666]">{t.titulo}</p>

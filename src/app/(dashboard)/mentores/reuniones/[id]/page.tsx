@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cancelarReunion, editarReunion, guardarNotas, reactivarReunion, rehacerResumen } from "../acciones";
+import { cancelarReunion, editarReunion, guardarNotas, opinarResumen, reactivarReunion, rehacerResumen } from "../acciones";
 import { BotonGuardar } from "../boton-guardar";
 import { enEspera, estadoResumen, vigente, yaSalio, type Tono } from "../estado";
 import { fechaCorta, fechaHora, paraInput } from "../fechas";
@@ -31,6 +31,9 @@ const nombresEstado: Record<string, string> = {
 
 const areaTexto = "w-full border bg-transparent p-3 text-sm outline-none focus-visible:border-ring";
 
+const opcionesMinutos = [0, 5, 15, 30, 60];
+const minutos = (m: number) => (m === 0 ? "nada" : m >= 60 ? "1 hora o más" : `${m} min`);
+
 export default async function Reunion({ params, searchParams }: PageProps<"/mentores/reuniones/[id]">) {
   const persona = await requireRol("mentor");
   const esAdmin = persona.rol === "admin";
@@ -39,7 +42,7 @@ export default async function Reunion({ params, searchParams }: PageProps<"/ment
 
   const { data: r, error: errorReunion } = await supabase
     .from("mentores_reuniones")
-    .select("id, inicio, lugar, notas, proximos_pasos, cancelada, mentor_id, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre), mentores_resumenes(id, html, con_ia, aviso, estado, programado_para, created_at, leido_at, error)")
+    .select("id, inicio, lugar, notas, proximos_pasos, cancelada, mentor_id, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre), mentores_resumenes(id, html, con_ia, aviso, aviso_mail_at, estado, programado_para, created_at, leido_at, error, le_sirvio, minutos_ahorrados)")
     .eq("id", id)
     .maybeSingle();
   if (errorReunion?.code === "22P02") notFound(); // id con formato inválido
@@ -92,6 +95,13 @@ export default async function Reunion({ params, searchParams }: PageProps<"/ment
         {esAdmin && actual?.aviso && (
           <p className="mb-4 border-l-2 border-destructive pl-4 text-sm">
             <span className="font-medium">Aviso para el coordinador:</span> {actual.aviso}
+            {actual.aviso_mail_at && <span className="text-[#666]"> (se mandó por mail el {fechaCorta(actual.aviso_mail_at)})</span>}
+          </p>
+        )}
+        {esAdmin && actual && actual.le_sirvio !== null && (
+          <p className="mb-4 text-sm text-[#666]">
+            Opinión del mentor: {actual.le_sirvio ? "le sirvió" : "no le sirvió"}
+            {actual.minutos_ahorrados !== null && ` · le ahorró ${minutos(actual.minutos_ahorrados)} de preparación`}.
           </p>
         )}
         {actual ? (
@@ -103,6 +113,24 @@ export default async function Reunion({ params, searchParams }: PageProps<"/ment
               {actual.con_ia ? "." : ", sin la síntesis de IA."}
             </p>
             <iframe title="Resumen pre-reunión" sandbox="" srcDoc={actual.html} className="h-[560px] w-full border bg-white" />
+            {salio && persona.id === r.mentor_id && (
+              <form action={opinarResumen} className="mt-4 grid gap-4 border p-4 text-sm">
+                <input type="hidden" name="resumen_id" value={actual.id} />
+                <input type="hidden" name="reunion_id" value={r.id} />
+                <p className="font-medium">¿Te sirvió el resumen para preparar la reunión?</p>
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor="minutos">Tiempo de preparación que te ahorró</Label>
+                    <select id="minutos" name="minutos" defaultValue={String(actual.minutos_ahorrados ?? "")} className="h-9 border bg-background px-2 text-sm">
+                      <option value="">Prefiero no decir</option>
+                      {opcionesMinutos.map((m) => <option key={m} value={m}>{minutos(m)}</option>)}
+                    </select>
+                  </div>
+                  <Button type="submit" name="le_sirvio" value="si" size="lg" variant={actual.le_sirvio === true ? "default" : "outline"}>Sí, me sirvió</Button>
+                  <Button type="submit" name="le_sirvio" value="no" size="lg" variant={actual.le_sirvio === false ? "default" : "outline"}>No me sirvió</Button>
+                </div>
+              </form>
+            )}
           </>
         ) : (
           <p className="border p-6 text-center text-sm text-[#666]">{sinResumen}</p>

@@ -39,9 +39,18 @@ export function estadoResumen(
   return { texto: "Pendiente", tono: "pendiente" };
 }
 
-// Métricas del relevamiento: reuniones con resumen a tiempo, si lo leen y si el asistente escaló bien los problemas.
+type ResumenMetricas = ResumenBase & {
+  leido_at: string | null;
+  aviso: string | null;
+  aviso_util: boolean | null;
+  aviso_mail_at: string | null;
+  le_sirvio: boolean | null;
+  minutos_ahorrados: number | null;
+};
+
+// Métricas del relevamiento: resumen a tiempo, si lo leen, si sirve, cuánto tiempo ahorra y si el asistente escaló bien.
 export function metricas(
-  reuniones: { inicio: string; cancelada: boolean; mentores_resumenes: (ResumenBase & { leido_at: string | null; aviso: string | null; aviso_util: boolean | null })[] }[],
+  reuniones: { inicio: string; cancelada: boolean; mentores_resumenes: ResumenMetricas[] }[],
   ahora = Date.now(),
 ) {
   // Las que ya tendrían que tener resumen: no canceladas y con la ventana de 24 h ya empezada.
@@ -52,11 +61,18 @@ export function metricas(
     return salio ? v : null;
   }).filter((v) => v !== null);
   const conAviso = reuniones.map((r) => vigente(r.mentores_resumenes)).filter((v) => !!v?.aviso);
+  const opinaron = salieron.filter((v) => v.le_sirvio !== null);
+  const conMinutos = salieron.filter((v) => v.minutos_ahorrados !== null);
   return {
     aTiempo: salieron.length,
     debian: debian.length,
     leidos: salieron.filter((v) => v.leido_at).length,
+    opinaron: opinaron.length,
+    lesSirvio: opinaron.filter((v) => v.le_sirvio).length,
+    minutosAhorrados: conMinutos.reduce((total, v) => total + v.minutos_ahorrados!, 0),
+    conMinutos: conMinutos.length,
     avisos: conAviso.length,
+    avisosPorMail: conAviso.filter((v) => v.aviso_mail_at).length,
     avisosUtiles: conAviso.filter((v) => v.aviso_util === true).length,
     avisosMarcados: conAviso.filter((v) => v.aviso_util !== null).length,
   };
