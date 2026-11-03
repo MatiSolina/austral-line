@@ -45,11 +45,15 @@ export default async function Mentores() {
 
   if (persona.rol === "admin") return <PanelAdmin />;
 
-  const [{ data: personas, error }, { data: miPerfil }] = await Promise.all([
-    supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "mentor").order("nombre"),
+  // Los mails de otros mentores son privados (solo el coordinador los ve): acá va solo el nombre.
+  const [{ data: personas, error }, { data: miPerfil }, asignados] = await Promise.all([
+    supabase.from("personas").select("id, nombre").eq("rol", "mentor").order("nombre"),
     supabase.from("mentores_perfil").select("estado").eq("persona_id", persona.id).maybeSingle(),
+    // Los proyectos que el coordinador le asignó en el Match (la base solo le deja ver los suyos aceptados).
+    supabase.from("mentores_sugerencias").select("id, proyectos(nombre, descripcion)").eq("estado", "aceptada").order("decidido_at"),
   ]);
   if (error) throw error;
+  if (asignados.error) throw asignados.error;
 
   return (
     <>
@@ -70,11 +74,30 @@ export default async function Mentores() {
         </Link>
       </Card>
 
+      <section className="mb-10">
+        <h2 className="mb-4 font-serif text-xl">Tus proyectos</h2>
+        {asignados.data.length === 0 ? (
+          <p className="border p-6 text-center text-sm text-[#666]">
+            Todavía no te asignaron proyectos. Cuando el coordinador te asigne uno, aparece acá y te llega un mail.
+          </p>
+        ) : (
+          <div className="grid gap-px border bg-border">
+            {asignados.data.map((a) => (
+              <div key={a.id} className="grid gap-1 bg-background p-5">
+                <p className="font-medium">{a.proyectos.nombre}</p>
+                <p className="text-sm text-[#666]">{a.proyectos.descripcion || "Sin descripción"}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <h2 className="mb-4 font-serif text-xl">Mentores</h2>
       <Table>
-        <TableHeader><TableRow><TableHead>Nombre</TableHead><TableHead>Email</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Nombre</TableHead></TableRow></TableHeader>
         <TableBody>
           {personas.map((p) => (
-            <TableRow key={p.id}><TableCell>{p.nombre}</TableCell><TableCell>{p.email}</TableCell></TableRow>
+            <TableRow key={p.id}><TableCell>{p.nombre}</TableCell></TableRow>
           ))}
         </TableBody>
       </Table>

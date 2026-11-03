@@ -35,10 +35,16 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
       .from("mentores_reuniones")
       .select("id, inicio, lugar, notas, cancelada, proyectos(nombre), mentor:personas!mentores_reuniones_mentor_id_fkey(nombre), mentores_resumenes(id, estado, programado_para, created_at, leido_at, aviso, aviso_util, aviso_mail_at, le_sirvio, minutos_ahorrados)")
       .order("inicio"),
-    supabase.from("proyectos").select("id, nombre").order("nombre"),
+    // El coordinador agenda con cualquier proyecto; el mentor, solo con los que le asignaron en el Match.
+    esAdmin
+      ? supabase.from("proyectos").select("id, nombre").order("nombre")
+      : supabase.from("mentores_sugerencias").select("proyectos(id, nombre)").eq("estado", "aceptada"),
     supabase.from("personas").select("id, nombre").eq("rol", "mentor").order("nombre"),
   ]);
   for (const r of [reuniones, proyectos, mentores]) if (r.error) throw r.error;
+  const opciones = proyectos.data!
+    .map((p) => ("proyectos" in p ? p.proyectos : p))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const ahora = new Date().getTime(); // Server Component: se calcula una vez por pedido
   const lista = reuniones.data!;
@@ -152,8 +158,11 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
             <Label htmlFor="proyecto_id">Proyecto</Label>
             <select id="proyecto_id" name="proyecto_id" required defaultValue="" className="h-9 border bg-background px-2 text-sm">
               <option value="" disabled>Elegí un proyecto</option>
-              {proyectos.data!.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+              {opciones.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
+            {!esAdmin && opciones.length === 0 && (
+              <p className="text-sm text-[#666]">Todavía no te asignaron proyectos: cuando el coordinador te asigne uno, vas a poder agendar reuniones con ese equipo.</p>
+            )}
           </div>
           {esAdmin && (
             <div className="grid gap-2">

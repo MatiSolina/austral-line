@@ -266,3 +266,15 @@ where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@al
 -- GRUPO ALUMNOS: el Kickoff pide entrega grupal e individual (para probar las entregas individuales).
 insert into alumnos_hitos_tipo (evento_id, tipo)
 select id, 'ambas' from eventos where nombre = 'Kickoff';
+
+-- GRUPO MENTORES: Marta queda asignada por el Match a AgroSense y Tutorly (los proyectos de sus reuniones).
+-- Con esto ve "Tus proyectos" en su inicio, puede agendar reuniones con ellos y las entregas de esos grupos.
+with pedido as (
+  insert into mentores_match_pedidos (proyecto_id, pedido_por)
+  select p.id, a.id from proyectos p, personas a
+  where p.nombre in ('AgroSense', 'Tutorly') and a.email = 'admin@austral.edu.ar'
+  returning id, proyecto_id, pedido_por
+)
+insert into mentores_sugerencias (pedido_id, proyecto_id, mentor_id, afinidad, motivo, estado, decidido_por, decidido_at)
+select pedido.id, pedido.proyecto_id, m.id, 80, 'Asignada en el seed de prueba.', 'aceptada', pedido.pedido_por, now() - interval '10 days'
+from pedido, personas m where m.email = 'marta@empresa.com';

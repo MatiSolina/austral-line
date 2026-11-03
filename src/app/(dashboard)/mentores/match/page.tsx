@@ -8,7 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BotonEnviar } from "../_components/boton-enviar";
 import { Estrellas } from "../_components/estrellas";
+import { urlBase } from "../reuniones/agente";
 import { sugerirMentores } from "./agente";
+import { avisarAsignacion } from "./avisar";
 
 const fechaCorta = (iso: string) =>
   new Date(iso).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -66,15 +68,19 @@ async function decidir(formData: FormData) {
     const tardo = pedido ? (ahora.getTime() - Date.parse(pedido.created_at)) / 6e4 : MINUTOS_A_MANO;
     minutos_ahorrados = Math.max(0, Math.round(MINUTOS_A_MANO - tardo));
   }
-  const { error } = await supabase
+  const { data: decidida, error } = await supabase
     .from("mentores_sugerencias")
     .update({ estado, decidido_por: coordinador.id, decidido_at: ahora.toISOString(), minutos_ahorrados })
     .eq("id", id)
-    .eq("estado", "pendiente");
+    .eq("estado", "pendiente")
+    .select("proyecto_id, mentor_id");
   if (error) throw error;
   revalidatePath("/mentores/match");
   revalidatePath("/mentores");
-  redirect(minutos_ahorrados === null ? "/mentores/match" : `/mentores/match?ok=${encodeURIComponent(`Mentor asignado. Se ahorraron ${duracion(minutos_ahorrados)} frente a buscarlo a mano.`)}`);
+  if (minutos_ahorrados === null || !decidida.length) redirect("/mentores/match");
+  // Solo si esta vez quedó aceptada (no si ya lo estaba): así el aviso sale una sola vez.
+  const aviso = await avisarAsignacion(supabase, decidida[0].proyecto_id, decidida[0].mentor_id, await urlBase());
+  redirect(`/mentores/match?ok=${encodeURIComponent(`Mentor asignado. Se ahorraron ${duracion(minutos_ahorrados)} frente a buscarlo a mano. ${aviso}`)}`);
 }
 
 async function calificar(formData: FormData) {
