@@ -28,7 +28,7 @@ export default async function PerfilesMentores() {
   const audioUrls = new Map<string, string>();
   await Promise.all((perfilesResult.data ?? []).filter((p) => p.audio_path && (usuario.rol !== "alumno" || p.autoriza_audio))
     .map(async (perfil) => {
-      const { data } = await supabase.storage.from(bucket).createSignedUrl(perfil.audio_path!, 15 * 60);
+      const { data } = await supabase.storage.from(bucket).createSignedUrl(perfil.audio_path!, 60 * 60);
       if (data?.signedUrl) audioUrls.set(perfil.mentor_id, data.signedUrl);
     }));
 

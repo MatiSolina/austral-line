@@ -22,6 +22,11 @@ create function austral_resguardar_publicacion_perfil() returns trigger
 language plpgsql set search_path = public as $$
 begin
   if mi_rol() = 'mentor' then
+    if tg_op = 'INSERT' then
+      new.resumen := '';
+    else
+      new.resumen := old.resumen;
+    end if;
     new.estado := 'revision';
     new.publicado_at := null;
   end if;
@@ -34,9 +39,13 @@ create trigger resguardar_publicacion_perfil before insert or update on austral_
 alter table austral_perfiles_mentores enable row level security;
 create policy "admin gestiona perfiles" on austral_perfiles_mentores for all to authenticated
   using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
-create policy "mentor gestiona su presentacion" on austral_perfiles_mentores for all to authenticated
-  using (mi_rol() = 'mentor' and mentor_id = austral_yo())
-  with check (mi_rol() = 'mentor' and mentor_id = austral_yo());
+create policy "mentor ve su presentacion" on austral_perfiles_mentores for select to authenticated
+  using (mi_rol() = 'mentor' and mentor_id = mi_persona_id());
+create policy "mentor crea su presentacion" on austral_perfiles_mentores for insert to authenticated
+  with check (mi_rol() = 'mentor' and mentor_id = mi_persona_id());
+create policy "mentor edita su presentacion" on austral_perfiles_mentores for update to authenticated
+  using (mi_rol() = 'mentor' and mentor_id = mi_persona_id())
+  with check (mi_rol() = 'mentor' and mentor_id = mi_persona_id());
 create policy "alumno ve presentaciones autorizadas" on austral_perfiles_mentores for select to authenticated
   using (mi_rol() = 'alumno' and estado = 'publicado' and mentor_id in (
     select mentor_id from austral_contactos_mentores where publicado
@@ -46,14 +55,15 @@ create table austral_perfiles_escuchas (
   id bigint generated always as identity primary key,
   mentor_id uuid not null references austral_perfiles_mentores(mentor_id) on delete cascade,
   alumno_id uuid not null references personas(id) on delete cascade,
-  escuchado_at timestamptz not null default now()
+  escuchado_at timestamptz not null default now(),
+  unique (mentor_id, alumno_id)
 );
 create index austral_perfiles_escuchas_mentor on austral_perfiles_escuchas(mentor_id);
 alter table austral_perfiles_escuchas enable row level security;
 create policy "admin lee escuchas" on austral_perfiles_escuchas for select to authenticated
   using (mi_rol() = 'admin');
 create policy "alumno registra escucha" on austral_perfiles_escuchas for insert to authenticated
-  with check (mi_rol() = 'alumno' and alumno_id = austral_yo() and mentor_id in (
+  with check (mi_rol() = 'alumno' and alumno_id = mi_persona_id() and mentor_id in (
     select mentor_id from austral_perfiles_mentores
     where estado = 'publicado' and autoriza_audio and audio_path is not null
   ));
@@ -69,14 +79,14 @@ alter table austral_perfiles_valoraciones enable row level security;
 create policy "admin lee valoraciones" on austral_perfiles_valoraciones for select to authenticated
   using (mi_rol() = 'admin');
 create policy "alumno ve su valoracion" on austral_perfiles_valoraciones for select to authenticated
-  using (mi_rol() = 'alumno' and alumno_id = austral_yo());
+  using (mi_rol() = 'alumno' and alumno_id = mi_persona_id());
 create policy "alumno valora perfil visible" on austral_perfiles_valoraciones for insert to authenticated
-  with check (mi_rol() = 'alumno' and alumno_id = austral_yo() and mentor_id in (
+  with check (mi_rol() = 'alumno' and alumno_id = mi_persona_id() and mentor_id in (
     select mentor_id from austral_perfiles_mentores where estado = 'publicado'
   ));
 create policy "alumno actualiza su valoracion" on austral_perfiles_valoraciones for update to authenticated
-  using (mi_rol() = 'alumno' and alumno_id = austral_yo())
-  with check (mi_rol() = 'alumno' and alumno_id = austral_yo() and mentor_id in (
+  using (mi_rol() = 'alumno' and alumno_id = mi_persona_id())
+  with check (mi_rol() = 'alumno' and alumno_id = mi_persona_id() and mentor_id in (
     select mentor_id from austral_perfiles_mentores where estado = 'publicado'
   ));
 
@@ -86,13 +96,15 @@ values ('austral-audios-mentores', 'austral-audios-mentores', false, 10485760,
 on conflict (id) do nothing;
 create policy "mentor sube su audio" on storage.objects for insert to authenticated
   with check (bucket_id = 'austral-audios-mentores' and mi_rol() = 'mentor'
-    and (storage.foldername(name))[1] = austral_yo()::text);
+    and (storage.foldername(name))[1] = mi_persona_id()::text
+    and name not in (select audio_path from austral_perfiles_mentores where audio_path is not null));
 create policy "mentor ve su audio" on storage.objects for select to authenticated
   using (bucket_id = 'austral-audios-mentores' and mi_rol() = 'mentor'
-    and (storage.foldername(name))[1] = austral_yo()::text);
+    and (storage.foldername(name))[1] = mi_persona_id()::text);
 create policy "mentor borra su audio" on storage.objects for delete to authenticated
   using (bucket_id = 'austral-audios-mentores' and mi_rol() = 'mentor'
-    and (storage.foldername(name))[1] = austral_yo()::text);
+    and (storage.foldername(name))[1] = mi_persona_id()::text
+    and name not in (select audio_path from austral_perfiles_mentores where audio_path is not null));
 create policy "admin gestiona audios" on storage.objects for all to authenticated
   using (bucket_id = 'austral-audios-mentores' and mi_rol() = 'admin')
   with check (bucket_id = 'austral-audios-mentores' and mi_rol() = 'admin');
