@@ -1840,6 +1840,11 @@ isOneToOne: false
 "alumnos_es_mi_proyecto":
 { Args: { "p_proyecto": string }; Returns: boolean
                            },
+"alumnos_grupos_compatibles":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "carreras_solo_a": (string)[],"carreras_solo_b": (string)[],"choques": (string)[],"integrantes_a": number,"integrantes_b": number,"nombre_a": string,"nombre_b": string,"proyecto_a": string,"proyecto_b": string,"puntaje": number,"temas_comunes": (string)[]
+            }[]
+                           },
 "alumnos_guardar_perfil":
 { Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
                            },
