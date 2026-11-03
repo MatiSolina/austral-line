@@ -1211,6 +1211,44 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"jurado_resumen_envios": {
+                  Row: {
+                    "asunto": string,"created_at": string,"email": string,"error": string | null,"estado": string,"evento_id": string,"id": string,"persona_id": string | null,"programado_para": string | null,"proyecto_id": string | null,"resend_id": string | null,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "asunto": string,"created_at"?: string,"email": string,"error"?: string | null,"estado": string,"evento_id": string,"id"?: string,"persona_id"?: string | null,"programado_para"?: string | null,"proyecto_id"?: string | null,"resend_id"?: string | null,"tipo": string
+                  }
+                  Update: {
+                    "asunto"?: string,"created_at"?: string,"email"?: string,"error"?: string | null,"estado"?: string,"evento_id"?: string,"id"?: string,"persona_id"?: string | null,"programado_para"?: string | null,"proyecto_id"?: string | null,"resend_id"?: string | null,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "jurado_resumen_envios_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_resumen_envios_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_resumen_envios_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "jurado_resumen_envios_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"jurado_resumenes": {
                   Row: {
                     "aprobado_at": string | null,"aprobado_por": string | null,"archivos": (string)[],"aviso": string | null,"estado": string,"evento_id": string,"generado_at": string | null,"generado_por": string | null,"palabras": number,"proyecto_id": string,"texto": string | null,"updated_at": string

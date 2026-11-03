@@ -6,8 +6,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { BUCKET, contarPalabras, MAX_BYTES, tipos, type Tipo } from "../_resumenes";
+import { cancelarCorreo, modoPrueba, type Correo } from "../_resend";
+import { BUCKET, contarPalabras, limiteEntrega, MAX_BYTES, tipos, yaPaso, type Tipo } from "../_resumenes";
+import { urlBase } from "../comunicaciones/datos";
+import { fechaHora } from "../comunicaciones/plantillas";
 import { generarResumen } from "./agente";
+import { estadosActivos, juradosPorSalon, mandarYRegistrar } from "./envios";
+import { mailEntrega } from "./plantillas";
 
 const extension = (nombre: string) => nombre.split(".").pop()?.toLowerCase() ?? "";
 // Las claves de Storage no aceptan cualquier carácter: el nombre original queda en la tabla.
@@ -110,6 +115,79 @@ export async function guardar(formData: FormData) {
     .eq("proyecto_id", String(formData.get("proyecto_id")));
   if (error) throw error;
   volver(formData, "ok", aprobar ? "Resumen aprobado: ya lo ven los jurados de su salón." : "Cambios guardados.");
+}
+
+const LIMITE_RESEND = 30 * 24 * 60 * 60 * 1000; // Resend programa hasta 30 días antes
+const simulado = (mensaje: string) => (modoPrueba() ? `Simulado (falta la clave de Resend, no salió ningún mail): ${mensaje}` : mensaje);
+
+// Programa el mail a cada jurado de cada salón para el día anterior al evento a las 18:00 (si ya pasó, sale ahora).
+// No se repite: si un jurado ya lo tiene programado o enviado, se saltea (sirve para sumar jurados nuevos).
+export async function programarEntrega(formData: FormData) {
+  await requireRol();
+  const supabase = await createClient();
+  const eventoId = String(formData.get("evento_id"));
+  const { data: evento, error } = await supabase.from("eventos").select("id, nombre, inicio").eq("id", eventoId).maybeSingle();
+  if (error) throw error;
+  if (!evento) volver(formData, "error", "No encontramos el evento.");
+  if (yaPaso(evento.inicio)) volver(formData, "error", "El evento ya empezó: la entrega de resúmenes ya no tiene sentido.");
+
+  const limite = new Date(limiteEntrega(evento.inicio)).getTime();
+  const ahora = Date.now();
+  if (limite - ahora > LIMITE_RESEND) {
+    volver(formData, "error", `Resend permite programar mails hasta 30 días antes. Vas a poder programar la entrega desde el ${fechaHora(new Date(limite - LIMITE_RESEND).toISOString())}.`);
+  }
+  const programadoPara = limite > ahora + 60_000 ? new Date(limite).toISOString() : null;
+
+  const [salones, { data: previos, error: errorPrevios }] = await Promise.all([
+    juradosPorSalon(supabase, eventoId),
+    supabase.from("jurado_resumen_envios").select("persona_id").eq("evento_id", eventoId).eq("tipo", "entrega").in("estado", estadosActivos()),
+  ]);
+  if (errorPrevios) throw errorPrevios;
+  const tienen = new Set(previos.map((p) => p.persona_id));
+  const url = await urlBase();
+  const correos: Correo[] = [];
+  const filas: Parameters<typeof mandarYRegistrar>[2] = [];
+  for (const s of salones) {
+    for (const j of s.jurados.filter((j) => !tienen.has(j.id))) {
+      const { asunto, html } = mailEntrega({ jurado: j.nombre, evento, salon: s.nombre, equipos: s.equipos, url });
+      correos.push({ para: j.email, asunto, html, programadoPara: programadoPara ?? undefined });
+      filas.push({ evento_id: eventoId, tipo: "entrega", persona_id: j.id, email: j.email, asunto, programado_para: programadoPara, estado: "programado" });
+    }
+  }
+  if (salones.every((s) => s.jurados.length === 0)) volver(formData, "error", "Este evento no tiene jurados en salones. Se asignan desde Salones.");
+  if (correos.length === 0) volver(formData, "error", "Todos los jurados ya tienen la entrega. Si cambió el horario del evento, cancelala y volvé a programarla.");
+
+  const fallo = await mandarYRegistrar(supabase, correos, filas);
+  if (fallo) volver(formData, "error", fallo);
+  const a = `${correos.length} ${correos.length === 1 ? "jurado" : "jurados"}`;
+  volver(formData, "ok", simulado(programadoPara ? `Entrega programada para el ${fechaHora(programadoPara)} a ${a}.` : `Ya pasaron las 18:00 del día anterior: la entrega salió ahora a ${a}.`));
+}
+
+// Si cambia el horario del evento: cancela las entregas que todavía no salieron, para volver a programarlas.
+export async function cancelarEntrega(formData: FormData) {
+  await requireRol();
+  const supabase = await createClient();
+  const eventoId = String(formData.get("evento_id"));
+  const { data: pendientes, error } = await supabase
+    .from("jurado_resumen_envios").select("id, resend_id")
+    .eq("evento_id", eventoId).eq("tipo", "entrega").in("estado", ["programado", "simulado"])
+    .gt("programado_para", new Date().toISOString());
+  if (error) throw error;
+  if (pendientes.length === 0) volver(formData, "error", "No hay entregas pendientes para cancelar.");
+
+  const cancelados: string[] = [];
+  let fallo: string | null = null;
+  for (const envio of pendientes) {
+    const problema = envio.resend_id && !modoPrueba() ? await cancelarCorreo(envio.resend_id) : null;
+    if (problema) fallo = problema;
+    else cancelados.push(envio.id);
+  }
+  if (cancelados.length) {
+    const { error: errorUpdate } = await supabase.from("jurado_resumen_envios").update({ estado: "cancelado" }).in("id", cancelados);
+    if (errorUpdate) throw errorUpdate;
+  }
+  if (fallo) volver(formData, "error", `Se cancelaron ${cancelados.length} de ${pendientes.length}. ${fallo}`);
+  volver(formData, "ok", `Se cancelaron ${cancelados.length} entregas pendientes.`);
 }
 
 export async function despublicar(formData: FormData) {

@@ -11,8 +11,11 @@ import { BotonEnviar } from "../_components/boton-enviar";
 import { conEvento, elegirEvento } from "../_eventos";
 import { fechaHora } from "../comunicaciones/plantillas";
 import { desactualizado, duracion, estados, limiteEntrega, MINUTOS_POR_SALON, PALABRAS_POR_MINUTO, tamano, tipos, yaPaso } from "../_resumenes";
-import { generar } from "./acciones";
+import { BotonConfirmar } from "../_components/boton-confirmar";
+import { modoPrueba } from "../_resend";
+import { cancelarEntrega, generar, programarEntrega } from "./acciones";
 import { cargarEvento, type Equipo } from "./datos";
+import { estadosActivos } from "./envios";
 import { Subir } from "./subir";
 
 export default async function Resumenes({ searchParams }: PageProps<"/jurado/resumenes">) {
@@ -29,6 +32,17 @@ export default async function Resumenes({ searchParams }: PageProps<"/jurado/res
   const limite = datos ? limiteEntrega(datos.evento.inicio) : null;
   const vencido = !!limite && yaPaso(limite);
   const volver = conEvento("/jurado/resumenes", datos?.evento.id);
+  const sinAprobar = equipos.filter((q) => q.resumen?.estado !== "aprobado").map((q) => q.nombre);
+
+  const { data: envios, error: errorEnvios } = datos
+    ? await supabase
+      .from("jurado_resumen_envios")
+      .select("id, tipo, email, programado_para, estado, error, created_at, proyectos(nombre)")
+      .eq("evento_id", datos.evento.id)
+      .order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (errorEnvios) throw errorEnvios;
+  const entregas = envios.filter((e) => e.tipo === "entrega" && estadosActivos().includes(e.estado));
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -60,16 +74,48 @@ export default async function Resumenes({ searchParams }: PageProps<"/jurado/res
         </div>
       ) : (
         <>
-          {/* Meta de entrega */}
-          <section className="mb-12 border bg-card p-6">
-            <p>
-              <span className="font-serif text-3xl">{aprobados}/{equipos.length}</span>
-              <span className="ml-2 text-sm text-[#666]">resúmenes aprobados para los jurados</span>
-            </p>
-            <p className={`mt-1 text-sm ${vencido && aprobados < equipos.length ? "text-destructive" : "text-[#666]"}`}>
-              Meta: todos aprobados antes del {fechaHora(limite!)}
-              {aprobados === equipos.length ? " · cumplida." : vencido ? " · vencida: los jurados ya tendrían que tenerlos." : "."}
-            </p>
+          {/* Meta y entrega a los jurados */}
+          <section className="mb-12 flex flex-col gap-6 border bg-card p-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p>
+                <span className="font-serif text-3xl">{aprobados}/{equipos.length}</span>
+                <span className="ml-2 text-sm text-[#666]">resúmenes aprobados para los jurados</span>
+              </p>
+              <p className={`mt-1 text-sm ${vencido && aprobados < equipos.length ? "text-destructive" : "text-[#666]"}`}>
+                Meta: todos aprobados antes del {fechaHora(limite!)}
+                {aprobados === equipos.length ? " · cumplida." : vencido ? " · vencida: los jurados ya tendrían que tenerlos." : "."}
+              </p>
+              <p className="mt-3 text-sm">
+                {entregas.length === 0
+                  ? "Entrega a los jurados: sin programar."
+                  : `Entrega a los jurados: ${entregas.length} ${entregas.length === 1 ? "jurado" : "jurados"} · ${entregas.some((e) => e.estado === "enviado") ? "enviada" : `programada para el ${fechaHora(entregas[0].programado_para ?? limite!)}`}${modoPrueba() ? " (simulada)" : ""}.`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {entregas.some((e) => e.programado_para && !yaPaso(e.programado_para)) && (
+                <form action={cancelarEntrega}>
+                  <input type="hidden" name="evento_id" value={datos.evento.id} />
+                  <input type="hidden" name="volver" value={volver} />
+                  <BotonConfirmar mensaje="¿Cancelar la entrega programada? Sirve si cambió el horario del evento: después la volvés a programar.">Cancelar entrega</BotonConfirmar>
+                </form>
+              )}
+              <form action={programarEntrega}>
+                <input type="hidden" name="evento_id" value={datos.evento.id} />
+                <input type="hidden" name="volver" value={volver} />
+                <BotonConfirmar
+                  variant={entregas.length ? "outline" : "default"}
+                  size="lg"
+                  mensaje={[
+                    `Cada jurado recibe el ${vencido ? "mail ahora" : `${fechaHora(limite!)}`} un mail con el link a los resúmenes de su salón.`,
+                    sinAprobar.length ? `\nOjo: todavía falta aprobar ${sinAprobar.join(", ")}. Aparecen en la pantalla del jurado cuando los apruebes.` : "",
+                    entregas.length ? "\nA los jurados que ya la tienen no se les manda de nuevo." : "",
+                    "\n¿Seguimos?",
+                  ].join("")}
+                >
+                  {entregas.length ? "Sumar jurados nuevos" : "Programar entrega a los jurados"}
+                </BotonConfirmar>
+              </form>
+            </div>
           </section>
 
           <section className="mb-12 grid gap-12">
@@ -138,11 +184,44 @@ export default async function Resumenes({ searchParams }: PageProps<"/jurado/res
               );
             })}
           </section>
+
+          {/* Historial: entregas a los jurados y alertas a los admins */}
+          <section className="mb-12">
+            <h2 className="mb-1 font-serif text-xl">Mails</h2>
+            <p className="mb-3 text-sm text-[#666]">
+              Entregas a los jurados y alertas a los admins cuando el agente frena.
+              {modoPrueba() && " Modo prueba: falta la clave de Resend, así que quedan como \"simulado\" y no sale ninguno."}
+            </p>
+            {envios.length === 0 ? (
+              <p className="border p-6 text-center text-sm text-[#666]">Todavía no se mandó ningún mail para este evento.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow><TableHead>Mail</TableHead><TableHead>Para</TableHead><TableHead>Cuándo</TableHead><TableHead>Estado</TableHead></TableRow>
+                </TableHeader>
+                <TableBody>
+                  {envios.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="whitespace-normal text-sm">{e.tipo === "entrega" ? "Entrega a jurado" : `Alerta: ${e.proyectos?.nombre ?? "equipo"}`}</TableCell>
+                      <TableCell className="whitespace-normal break-all text-sm">{e.email}</TableCell>
+                      <TableCell className="whitespace-normal text-sm text-[#666]">{fechaHora(e.programado_para ?? e.created_at)}</TableCell>
+                      <TableCell className="whitespace-normal text-sm">
+                        <Badge variant={e.estado === "error" ? "destructive" : "outline"}>{estadoEnvio[e.estado] ?? e.estado}</Badge>
+                        {e.error && <span className="mt-1 block text-[#666]">{e.error}</span>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </section>
         </>
       )}
     </div>
   );
 }
+
+const estadoEnvio: Record<string, string> = { programado: "Programado", enviado: "Enviado", simulado: "Simulado", cancelado: "Cancelado", error: "Error" };
 
 function CeldaArchivo({ equipo, tipo, eventoId }: { equipo: Equipo; tipo: "presentacion" | "transcripcion"; eventoId: string }) {
   const archivo = equipo[tipo];

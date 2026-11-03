@@ -6,10 +6,12 @@
 // 2. Redacta el resumen con un tope de palabras para que el salón entero se escuche en menos de 15 minutos.
 // 3. Un segundo paso lo revisa (que no evalúe, que no invente, que hable de este equipo). Si algo no cierra, queda
 //    "con aviso" en vez de "para revisar". Nada le llega a los jurados sin la aprobación del admin.
-// Permisos mínimos: corre con la sesión del admin, solo lee los archivos adjuntados y solo escribe jurado_resumenes.
+// Permisos mínimos: corre con la sesión del admin, solo lee los archivos adjuntados y solo escribe jurado_resumenes
+// (y, cuando frena, el registro de la alerta que les manda a los admins).
 import { generateText, jsonSchema, Output, type FilePart, type TextPart } from "ai";
 import { BUCKET, contarPalabras, duracion, tipos, type Supabase } from "../_resumenes";
 import { cargarEvento, type Archivo, type Equipo } from "./datos";
+import { alertarAdmins } from "./envios";
 
 const MODELO = "anthropic/claude-sonnet-5.5";
 const MAX_CARACTERES_TRANSCRIPCION = 150_000; // ~2 horas de sesión
@@ -135,8 +137,10 @@ export async function generarResumen(supabase: Supabase, eventoId: string, proye
     if (error) throw error;
   };
   const frenar = async (errores: string[]) => {
-    await guardar({ estado: "revisar", aviso: reporte(equipo, errores) });
-    return { ok: false, mensaje: `${equipo.nombre}: el agente frenó (${errores.length === 1 ? errores[0] : `${errores.length} problemas`}). Quedó el reporte en el panel.` };
+    const texto = reporte(equipo, errores);
+    await guardar({ estado: "revisar", aviso: texto });
+    await alertarAdmins(supabase, datos.evento, equipo, texto);
+    return { ok: false, mensaje: `${equipo.nombre}: el agente frenó (${errores.length === 1 ? errores[0] : `${errores.length} problemas`}). Quedó el reporte en el panel y se avisó por mail a los admins.` };
   };
 
   // 1. Controles sin IA: material completo y legible.
