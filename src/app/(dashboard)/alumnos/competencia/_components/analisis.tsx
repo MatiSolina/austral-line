@@ -30,7 +30,10 @@ export function Analisis({ resultado }: { resultado: Partial<Resultado> }) {
   const r = {
     resumen: typeof resultado.resumen === "string" ? resultado.resumen : "",
     competidores: (Array.isArray(resultado.competidores) ? resultado.competidores : []).filter(
-      (c) => c && typeof c.nombre === "string" && esLink(c.fuente),
+      (c) =>
+        c &&
+        esLink(c.fuente) &&
+        [c.nombre, c.tipo, c.que_hace, c.parecido, c.diferencia].every((x) => typeof x === "string"),
     ),
     diferenciales: textos(resultado.diferenciales),
     alertas: textos(resultado.alertas),
@@ -64,7 +67,7 @@ export function Analisis({ resultado }: { resultado: Partial<Resultado> }) {
                       <a href={c.fuente} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4 hover:text-[#666]">
                         {c.nombre}
                       </a>
-                      <Badge variant={c.tipo === "directo" ? "default" : "outline"}>{TIPO[c.tipo] ?? c.tipo}</Badge>
+                      <Badge variant={c.tipo === "directo" ? "default" : "outline"}>{Object.hasOwn(TIPO, c.tipo) ? TIPO[c.tipo] : c.tipo}</Badge>
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-normal">{c.que_hace}</TableCell>
