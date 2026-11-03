@@ -55,16 +55,19 @@ Reglas:
   create policy "admin todo" on jurado_votos for all to authenticated
     using (mi_rol() = 'admin') with check (mi_rol() = 'admin');
   create policy "jurado lo suyo" on jurado_votos for all to authenticated
-    using (mi_rol() = 'jurado' and jurado_id = (select id from personas where email = auth.jwt() ->> 'email'))
-    with check (mi_rol() = 'jurado' and jurado_id = (select id from personas where email = auth.jwt() ->> 'email'));
+    using (mi_rol() = 'jurado' and jurado_id = mi_persona_id())
+    with check (mi_rol() = 'jurado' and jurado_id = mi_persona_id());
   ```
+- "Quién soy" en SQL es `mi_persona_id()`. La columna `personas.email` no se puede leer: para mostrar o usar mails,
+  leé la vista `personas_contacto` (`personas:personas_contacto(nombre, email)`). Ahí `email` viene en `null` si
+  el usuario no lo puede ver: el admin ve todos; el resto, el suyo y los de alumnos y coordinadores.
 - Si hace falta data de prueba, agregala al final de `supabase/seed.sql` con un comentario del grupo.
 
 ## Código
 
 - Leer y escribir datos: Server Components y Server Actions con `createClient()` de `@/lib/supabase/server`. Tipado con `database.types.ts`; si un tipo no existe, faltó correr `npm run db:types`.
 - `cacheComponents` está activo: lo que lee cookies o la base va dentro de un `<Suspense>` (el layout del dashboard ya envuelve las páginas).
-- Nunca uses `createAdminClient()` (salta todos los permisos) fuera de la sección Miembros.
+- Nunca uses `createAdminClient()` (salta todos los permisos) fuera de la sección Miembros (la única otra excepción es `src/app/api/cron/`, del core).
 - IA: AI SDK con el gateway, pasando el modelo como string (`import { generateText } from "ai"; generateText({ model: "anthropic/claude-sonnet-5.5", prompt })`). Usa `AI_GATEWAY_API_KEY`. Los modelos disponibles están en https://vercel.com/ai-gateway/models
 
 ## Diseño: estilo Midday
