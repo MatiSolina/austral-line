@@ -486,6 +486,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_compatibilidades_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_compatibilidades_proyecto_id_fkey"
       columns: ["proyecto_id"]
 isOneToOne: false
@@ -657,6 +663,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_necesidades_revision_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"austral_participaciones": {
@@ -760,10 +772,22 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_recomendaciones_sesion_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_recomendaciones_sesion_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_recomendaciones_sesion_proyecto_id_fkey"
@@ -802,6 +826,12 @@ isOneToOne: true
       columns: ["alumno_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_satisfaccion_mentoria_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_satisfaccion_mentoria_proyecto_id_fkey"
@@ -866,6 +896,12 @@ isOneToOne: false
       columns: ["designado_por"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_titulares_proyecto_designado_por_fkey"
+      columns: ["designado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_titulares_proyecto_mentor_id_proyecto_id_fkey"
