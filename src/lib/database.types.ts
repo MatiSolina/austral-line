@@ -664,6 +664,12 @@ isOneToOne: false
       referencedRelation: "personas"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "austral_perfiles_escuchas_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "austral_perfiles_escuchas_mentor_id_fkey"
       columns: ["mentor_id"]
 isOneToOne: false
@@ -689,6 +695,12 @@ isOneToOne: false
 isOneToOne: true
       referencedRelation: "personas"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
     }
                   ]
                 },"austral_perfiles_valoraciones": {
@@ -708,6 +720,12 @@ isOneToOne: true
       columns: ["alumno_id"]
 isOneToOne: false
       referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_valoraciones_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "austral_perfiles_valoraciones_mentor_id_fkey"
