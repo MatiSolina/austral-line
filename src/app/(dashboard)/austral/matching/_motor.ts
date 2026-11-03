@@ -92,7 +92,7 @@ export function distribucion(integrantes: { habilidades: HabilidadConNivel[] }[]
 }
 
 // Qué tan parejo es el reparto entre las 4 categorías: 1 = todas iguales, 0 = todo en una sola.
-function parejo(d: Record<Categoria, number>) {
+export function parejo(d: Record<Categoria, number>) {
   const valores = Object.values(d);
   const suma = valores.reduce((a, b) => a + b, 0);
   if (suma === 0) return 0;
