@@ -573,6 +573,38 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"austral_matching_satisfaccion": {
+                  Row: {
+                    "alumno": number | null,"comentario": string | null,"equipo": number | null,"recomendacion_id": string,"registrado_por": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alumno"?: number | null,"comentario"?: string | null,"equipo"?: number | null,"recomendacion_id": string,"registrado_por"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "alumno"?: number | null,"comentario"?: string | null,"equipo"?: number | null,"recomendacion_id"?: string,"registrado_por"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_matching_satisfaccion_recomendacion_id_fkey"
+      columns: ["recomendacion_id"]
+isOneToOne: true
+      referencedRelation: "austral_recomendaciones"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_matching_satisfaccion_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_matching_satisfaccion_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_material_usos": {
                   Row: {
                     "created_at": string,"id": number,"jurado_id": string,"material_id": string,"tipo": string

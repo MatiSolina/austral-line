@@ -2,9 +2,11 @@
 import Link from "next/link";
 
 const secciones = [
+  { href: "/austral/matching/resumen", texto: "Resumen" },
   { href: "/austral/matching", texto: "Recomendaciones" },
   { href: "/austral/matching/alumnos", texto: "Alumnos sin grupo" },
   { href: "/austral/matching/proyectos", texto: "Proyectos" },
+  { href: "/austral/matching/importar", texto: "Importar CSV" },
   { href: "/austral/matching/pesos", texto: "Ponderación" },
 ];
 

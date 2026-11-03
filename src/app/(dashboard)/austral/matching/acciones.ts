@@ -7,6 +7,7 @@ import { generateText } from "ai";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cargarMatching, hayIA } from "./_datos";
+import { validar } from "./_csv";
 import { criterios, franjas, modalidades } from "./_motor";
 
 function volver(formData: FormData, tipo: "ok" | "error", mensaje: string): never {
@@ -164,6 +165,68 @@ export async function confirmar(formData: FormData) {
   // Ya no es un alumno sin grupo, así que su página de recomendación no tiene sentido: vuelve al panel.
   formData.set("volver", "/austral/matching");
   volver(formData, "ok", "Asignación confirmada: el alumno ya es parte del equipo.");
+}
+
+// Importa perfiles desde el texto del CSV. Vuelve a validar todo acá; las filas con errores no se cargan.
+export async function importarPerfiles(texto: string): Promise<{ ok: boolean; mensaje: string }> {
+  await requireRol();
+  if (texto.length > 500_000) return { ok: false, mensaje: "El archivo es demasiado grande (máximo 500 KB)." };
+  const supabase = await createClient();
+  const [catalogo, alumnos] = await Promise.all([
+    supabase.from("austral_habilidades").select("id, nombre"),
+    supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "alumno"),
+  ]);
+  if (catalogo.error) throw catalogo.error;
+  if (alumnos.error) throw alumnos.error;
+  const { filas, errorGeneral } = validar(texto, catalogo.data, alumnos.data.filter((a): a is { id: string; nombre: string; email: string } => !!a.id && !!a.email));
+  if (!filas.length) return { ok: false, mensaje: errorGeneral ?? "No hay filas para importar." };
+
+  const validas = filas.filter((f) => !f.errores.length && f.personaId);
+  for (const f of validas) {
+    const { error } = await supabase.from("austral_perfiles_matching").upsert({ persona_id: f.personaId!, ...f.cambios, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    if (f.habilidades) {
+      const borrado = await supabase.from("austral_perfil_habilidades").delete().eq("persona_id", f.personaId!);
+      if (borrado.error) throw borrado.error;
+      if (f.habilidades.length) {
+        const alta = await supabase.from("austral_perfil_habilidades").insert(f.habilidades.map((h) => ({ persona_id: f.personaId!, habilidad_id: h.id, nivel: h.nivel })));
+        if (alta.error) throw alta.error;
+      }
+    }
+  }
+  revalidatePath("/austral", "layout");
+  const salteadas = filas.length - validas.length;
+  return {
+    ok: validas.length > 0,
+    mensaje: `Se importaron ${validas.length} perfil${validas.length === 1 ? "" : "es"}${salteadas ? `; ${salteadas} fila${salteadas === 1 ? "" : "s"} con errores no se cargaron` : ""}.`,
+  };
+}
+
+// Satisfacción con una asignación confirmada (1 a 5 del alumno y del equipo), para las métricas de seguimiento.
+export async function guardarSatisfaccion(formData: FormData) {
+  const persona = await requireRol();
+  const supabase = await createClient();
+  const puntaje = (campo: string) => {
+    const n = Number(formData.get(campo));
+    return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+  };
+  const alumno = puntaje("alumno");
+  const equipo = puntaje("equipo");
+  if (alumno === null && equipo === null) volver(formData, "error", "Elegí al menos una calificación (del alumno o del equipo).");
+
+  const recomendacionId = String(formData.get("recomendacion_id"));
+  const { data: rec } = await supabase.from("austral_recomendaciones").select("estado").eq("id", recomendacionId).maybeSingle();
+  if (rec?.estado !== "confirmada") volver(formData, "error", "Solo se registra la satisfacción de asignaciones confirmadas.");
+  const { error } = await supabase.from("austral_matching_satisfaccion").upsert({
+    recomendacion_id: recomendacionId,
+    alumno,
+    equipo,
+    comentario: texto(formData, "comentario"),
+    registrado_por: persona.id,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  volver(formData, "ok", "Satisfacción registrada.");
 }
 
 // Opcional: una justificación más redactada. Usa solo los datos calculados por el motor; no cambia el puntaje.
