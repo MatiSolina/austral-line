@@ -487,6 +487,44 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_compatibilidades": {
+                  Row: {
+                    "calculado_at": string,"coincidencias": (string)[],"faltantes": (string)[],"mentor_id": string,"porcentaje": number,"proyecto_id": string,"revision_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "calculado_at"?: string,"coincidencias"?: (string)[],"faltantes"?: (string)[],"mentor_id": string,"porcentaje": number,"proyecto_id": string,"revision_id": string
+                  }
+                  Update: {
+                    "calculado_at"?: string,"coincidencias"?: (string)[],"faltantes"?: (string)[],"mentor_id"?: string,"porcentaje"?: number,"proyecto_id"?: string,"revision_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_compatibilidades_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_compatibilidades_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_compatibilidades_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_compatibilidades_revision_id_fkey"
+      columns: ["revision_id"]
+isOneToOne: false
+      referencedRelation: "austral_necesidades_revision"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_contactos_mentores": {
                   Row: {
                     "acepta_consultas_otros": boolean,"actualizado_at": string,"email_contacto": string,"especialidades": (string)[],"industria": string,"mentor_id": string,"modalidad": string,"publicado": boolean,"telefono_contacto": string
@@ -621,6 +659,38 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_necesidades_revision": {
+                  Row: {
+                    "contexto": string,"created_at": string,"etapa": string,"id": string,"necesidades": (string)[],"proyecto_id": string,"registrado_por": string,"sector": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "contexto"?: string,"created_at"?: string,"etapa": string,"id"?: string,"necesidades": (string)[],"proyecto_id": string,"registrado_por": string,"sector"?: string
+                  }
+                  Update: {
+                    "contexto"?: string,"created_at"?: string,"etapa"?: string,"id"?: string,"necesidades"?: (string)[],"proyecto_id"?: string,"registrado_por"?: string,"sector"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_necesidades_revision_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_necesidades_revision_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_necesidades_revision_registrado_por_fkey"
+      columns: ["registrado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_participaciones": {
                   Row: {
                     "actividad": string,"creado_por": string,"created_at": string,"evento_id": string | null,"fecha": string,"id": string,"persona_id": string
@@ -703,6 +773,94 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_recomendaciones_sesion": {
+                  Row: {
+                    "decidido_at": string,"decidido_por": string,"estado": string,"mentor_id": string,"proyecto_id": string,"revision_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "decidido_at"?: string,"decidido_por": string,"estado": string,"mentor_id": string,"proyecto_id": string,"revision_id": string
+                  }
+                  Update: {
+                    "decidido_at"?: string,"decidido_por"?: string,"estado"?: string,"mentor_id"?: string,"proyecto_id"?: string,"revision_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_recomendaciones_sesion_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_decidido_por_fkey"
+      columns: ["decidido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_revision_id_fkey"
+      columns: ["revision_id"]
+isOneToOne: false
+      referencedRelation: "austral_necesidades_revision"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_recomendaciones_sesion_revision_id_mentor_id_fkey"
+      columns: ["revision_id","mentor_id"]
+isOneToOne: true
+      referencedRelation: "austral_compatibilidades"
+      referencedColumns: ["revision_id","mentor_id"]
+    }
+                  ]
+                },"austral_satisfaccion_mentoria": {
+                  Row: {
+                    "actualizado_at": string,"alumno_id": string,"comentario": string,"proyecto_id": string,"puntaje": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado_at"?: string,"alumno_id": string,"comentario"?: string,"proyecto_id": string,"puntaje": number
+                  }
+                  Update: {
+                    "actualizado_at"?: string,"alumno_id"?: string,"comentario"?: string,"proyecto_id"?: string,"puntaje"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_satisfaccion_mentoria_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_satisfaccion_mentoria_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_satisfaccion_mentoria_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_solicitudes_contacto": {
                   Row: {
                     "alumno_id": string,"created_at": string,"estado": string,"id": string,"mentor_id": string,"motivo": string
@@ -738,6 +896,44 @@ isOneToOne: false
       columns: ["mentor_id"]
 isOneToOne: false
       referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_titulares_proyecto": {
+                  Row: {
+                    "designado_at": string,"designado_por": string,"mentor_id": string,"proyecto_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "designado_at"?: string,"designado_por": string,"mentor_id": string,"proyecto_id": string
+                  }
+                  Update: {
+                    "designado_at"?: string,"designado_por"?: string,"mentor_id"?: string,"proyecto_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_titulares_proyecto_designado_por_fkey"
+      columns: ["designado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_titulares_proyecto_designado_por_fkey"
+      columns: ["designado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_titulares_proyecto_mentor_id_proyecto_id_fkey"
+      columns: ["mentor_id","proyecto_id"]
+isOneToOne: false
+      referencedRelation: "austral_vinculos_mentor_proyecto"
+      referencedColumns: ["mentor_id","proyecto_id"]
+    },{
+      foreignKeyName: "austral_titulares_proyecto_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: true
+      referencedRelation: "proyectos"
       referencedColumns: ["id"]
     }
                   ]
@@ -1651,6 +1847,9 @@ isOneToOne: false
                            },
 "alumnos_yo":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"austral_calcular_compatibilidad":
+{ Args: { "p_mentor": string,"p_revision": string }; Returns: undefined
                            },
 "austral_me_toca":
 { Args: { "p_proyecto": string }; Returns: boolean
