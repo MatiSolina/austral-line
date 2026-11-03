@@ -1,7 +1,7 @@
 "use client";
 // GRUPO JURADO — lee un texto en voz alta con la voz del navegador (gratis, sin servicios externos).
 // Es opcional: el mismo texto siempre está escrito al lado para quien prefiera leerlo.
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 function vozEnEspanol() {
@@ -10,11 +10,20 @@ function vozEnEspanol() {
 }
 
 export function Escuchar({ texto }: { texto: string }) {
+  const id = useId();
   const [estado, setEstado] = useState<"quieto" | "hablando" | "pausa">("quieto");
   // En el servidor asumimos que sí, para no mostrar el aviso de más mientras carga.
   const soportado = useSyncExternalStore(() => () => {}, () => "speechSynthesis" in window, () => true);
 
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  // El navegador tiene una sola voz: si arranca otro botón de la página, este vuelve a "Escuchar".
+  useEffect(() => {
+    const otroEmpezo = (e: Event) => { if ((e as CustomEvent).detail !== id) setEstado("quieto"); };
+    window.addEventListener("jurado-escuchar", otroEmpezo);
+    return () => {
+      window.removeEventListener("jurado-escuchar", otroEmpezo);
+      window.speechSynthesis?.cancel();
+    };
+  }, [id]);
 
   function reproducir() {
     const s = window.speechSynthesis;
@@ -24,6 +33,7 @@ export function Escuchar({ texto }: { texto: string }) {
       return;
     }
     s.cancel();
+    window.dispatchEvent(new CustomEvent("jurado-escuchar", { detail: id }));
     const frase = new SpeechSynthesisUtterance(texto);
     const voz = vozEnEspanol();
     if (voz) frase.voice = voz;
