@@ -665,6 +665,96 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_perfiles_escuchas": {
+                  Row: {
+                    "alumno_id": string,"escuchado_at": string,"id": number,"mentor_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alumno_id": string,"escuchado_at"?: string,"id"?: never,"mentor_id": string
+                  }
+                  Update: {
+                    "alumno_id"?: string,"escuchado_at"?: string,"id"?: never,"mentor_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_perfiles_escuchas_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_escuchas_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_escuchas_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "austral_perfiles_mentores"
+      referencedColumns: ["mentor_id"]
+    }
+                  ]
+                },"austral_perfiles_mentores": {
+                  Row: {
+                    "actualizado_at": string,"audio_mime": string | null,"audio_path": string | null,"autoriza_audio": boolean,"cv_url": string,"estado": string,"intereses": string,"linkedin_url": string,"mentor_id": string,"publicado_at": string | null,"resumen": string,"trayectoria": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado_at"?: string,"audio_mime"?: string | null,"audio_path"?: string | null,"autoriza_audio"?: boolean,"cv_url"?: string,"estado"?: string,"intereses"?: string,"linkedin_url"?: string,"mentor_id": string,"publicado_at"?: string | null,"resumen"?: string,"trayectoria"?: string
+                  }
+                  Update: {
+                    "actualizado_at"?: string,"audio_mime"?: string | null,"audio_path"?: string | null,"autoriza_audio"?: boolean,"cv_url"?: string,"estado"?: string,"intereses"?: string,"linkedin_url"?: string,"mentor_id"?: string,"publicado_at"?: string | null,"resumen"?: string,"trayectoria"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_perfiles_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_mentores_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"austral_perfiles_valoraciones": {
+                  Row: {
+                    "actualizado_at": string,"alumno_id": string,"mentor_id": string,"puntaje": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actualizado_at"?: string,"alumno_id": string,"mentor_id": string,"puntaje": number
+                  }
+                  Update: {
+                    "actualizado_at"?: string,"alumno_id"?: string,"mentor_id"?: string,"puntaje"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_perfiles_valoraciones_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_valoraciones_alumno_id_fkey"
+      columns: ["alumno_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_perfiles_valoraciones_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "austral_perfiles_mentores"
+      referencedColumns: ["mentor_id"]
+    }
+                  ]
                 },"austral_propuestas_incentivos": {
                   Row: {
                     "alternativa": string,"categoria": string,"creado_por": string,"created_at": string,"estado": string,"fundamento": string,"id": string,"participaciones_consideradas": number,"persona_id": string
