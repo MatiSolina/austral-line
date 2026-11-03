@@ -5,7 +5,7 @@ import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 export type Resultado = { ok: boolean; mensaje: string };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function guardarExperiencia(_previo: Resultado, datos: FormData): Promise<Resultado> {
   const alumno = await requireRol("alumno");

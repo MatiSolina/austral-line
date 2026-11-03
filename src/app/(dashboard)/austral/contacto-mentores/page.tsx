@@ -1,9 +1,10 @@
-import { Check, Mail, Phone, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Check, Mail, Phone } from "lucide-react";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FormularioMentor, FormularioSolicitud, FormularioVinculo } from "./_components/formularios";
-import { atenderSolicitud, quitarVinculo } from "./actions";
+import { FormularioMentor, FormularioQuitarVinculo, FormularioSolicitud, FormularioVinculo } from "./_components/formularios";
+import { atenderSolicitud } from "./actions";
 
 const modalidadLabel: Record<string, string> = {
   principal: "Principal", consulta: "Consulta puntual", ambas: "Principal y consulta",
@@ -164,8 +165,8 @@ export default async function ContactoMentores() {
             <TableCell>{nombres.get(vinculo.mentor_id)}</TableCell>
             <TableCell>{proyectosPorId.get(vinculo.proyecto_id)}</TableCell>
             <TableCell>{titulares.get(vinculo.proyecto_id) === vinculo.mentor_id
-              ? <span className="text-xs text-[#666]" title="El vínculo del mentor titular se conserva">Titular</span>
-              : <form action={quitarVinculo}><input type="hidden" name="mentor_id" value={vinculo.mentor_id} /><input type="hidden" name="proyecto_id" value={vinculo.proyecto_id} /><button type="submit" title="Quitar vínculo" aria-label="Quitar vínculo" className="p-1 hover:bg-muted"><Trash2 size={16} /></button></form>}</TableCell>
+              ? <Link href="/austral/compatibilidad" className="text-xs underline underline-offset-4" title="Quitá o cambiá al titular en Compatibilidad antes de borrar su vínculo">Titular: gestionar</Link>
+              : <FormularioQuitarVinculo mentorId={vinculo.mentor_id} proyectoId={vinculo.proyecto_id} />}</TableCell>
           </TableRow>)}</TableBody>
         </Table></div> : <p className="border-y py-6 text-sm text-[#666]">No hay vínculos formales registrados.</p>}
       </section>

@@ -70,7 +70,7 @@ create policy "admin gestiona titulares" on austral_titulares_proyecto for all t
 create policy "admin lee revisiones" on austral_necesidades_revision for select to authenticated
   using (mi_rol() = 'admin');
 create policy "admin registra revisiones" on austral_necesidades_revision for insert to authenticated
-  with check (mi_rol() = 'admin' and registrado_por = austral_yo());
+  with check (mi_rol() = 'admin' and registrado_por = mi_persona_id());
 create policy "admin lee compatibilidades" on austral_compatibilidades for select to authenticated
   using (mi_rol() = 'admin');
 create policy "admin gestiona recomendaciones" on austral_recomendaciones_sesion for all to authenticated
@@ -78,17 +78,17 @@ create policy "admin gestiona recomendaciones" on austral_recomendaciones_sesion
 create policy "admin lee satisfaccion" on austral_satisfaccion_mentoria for select to authenticated
   using (mi_rol() = 'admin');
 create policy "alumno lee su satisfaccion" on austral_satisfaccion_mentoria for select to authenticated
-  using (mi_rol() = 'alumno' and alumno_id = austral_yo());
+  using (mi_rol() = 'alumno' and alumno_id = mi_persona_id());
 create policy "alumno registra su satisfaccion" on austral_satisfaccion_mentoria for insert to authenticated
-  with check (mi_rol() = 'alumno' and alumno_id = austral_yo() and exists (
+  with check (mi_rol() = 'alumno' and alumno_id = mi_persona_id() and exists (
     select 1 from proyecto_integrantes i
-    where i.proyecto_id = austral_satisfaccion_mentoria.proyecto_id and i.persona_id = austral_yo()
+    where i.proyecto_id = austral_satisfaccion_mentoria.proyecto_id and i.persona_id = mi_persona_id()
   ));
 create policy "alumno actualiza su satisfaccion" on austral_satisfaccion_mentoria for update to authenticated
-  using (mi_rol() = 'alumno' and alumno_id = austral_yo())
-  with check (mi_rol() = 'alumno' and alumno_id = austral_yo() and exists (
+  using (mi_rol() = 'alumno' and alumno_id = mi_persona_id())
+  with check (mi_rol() = 'alumno' and alumno_id = mi_persona_id() and exists (
     select 1 from proyecto_integrantes i
-    where i.proyecto_id = austral_satisfaccion_mentoria.proyecto_id and i.persona_id = austral_yo()
+    where i.proyecto_id = austral_satisfaccion_mentoria.proyecto_id and i.persona_id = mi_persona_id()
   ));
 
 -- Coincidencia exacta de etiquetas normalizadas. Las necesidades pesan 80 % y el sector
@@ -167,6 +167,6 @@ create trigger recalcular_al_cambiar_mentor
   after insert or update of industria, especialidades on austral_contactos_mentores
   for each row execute function austral_recalcular_mentor();
 
-revoke all on function austral_calcular_compatibilidad(uuid, uuid) from public;
-revoke all on function austral_recalcular_revision() from public;
-revoke all on function austral_recalcular_mentor() from public;
+revoke execute on function austral_calcular_compatibilidad(uuid, uuid),
+  austral_recalcular_revision(), austral_recalcular_mentor()
+  from public, anon, authenticated;

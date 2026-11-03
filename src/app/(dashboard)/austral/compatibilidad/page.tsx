@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { FormularioNecesidades, FormularioTitular } from "./_components/formularios";
-import { decidirSugerencia } from "./actions";
+import { FormularioNecesidades, FormularioQuitarTitular, FormularioSugerencia, FormularioTitular } from "./_components/formularios";
 
 const etapaNombre: Record<string, string> = {
   idea: "Idea", prototipo: "Prototipo", validacion: "Validación", crecimiento: "Crecimiento",
 };
-const boton = "inline-flex min-h-9 items-center border px-3 text-sm hover:bg-muted";
 
 export default async function Compatibilidad() {
   await requireRol("admin");
@@ -131,6 +129,8 @@ export default async function Compatibilidad() {
               <p>{nombreMentor.get(titularId) ?? "Mentor"}</p>
               <p className="font-serif text-2xl">{titular ? `${titular.porcentaje} %` : "Sin datos para calcular"}</p>
               {titular && <p className="text-[#666]">Coincide en: {titular.coincidencias.join(", ") || "ninguna necesidad cargada"}. Falta cubrir: {titular.faltantes.join(", ") || "ninguna"}.</p>}
+              <FormularioQuitarTitular proyectoId={proyecto.id} />
+              {vinculados.length > 1 && <FormularioTitular proyectoId={proyecto.id} mentores={vinculados} actualId={titularId} />}
             </> : <>
               <p className="text-[#666]">Todavía no se registró un titular. Solo se puede seleccionar un mentor ya vinculado formalmente.</p>
               {vinculados.length ? <FormularioTitular proyectoId={proyecto.id} mentores={vinculados} />
@@ -151,13 +151,8 @@ export default async function Compatibilidad() {
                 <p className="text-[#666]">Falta: {puntaje!.faltantes.join(", ") || "ninguna"}</p>
                 {decision && <p>Decisión administrativa: {decision === "considerada" ? "Considerar consulta" : "Descartada"}</p>}
                 <div className="flex flex-wrap gap-2">
-                  {(["considerada", "descartada"] as const).map((estado) => <form key={estado} action={decidirSugerencia}>
-                    <input type="hidden" name="proyecto_id" value={proyecto.id} />
-                    <input type="hidden" name="revision_id" value={actual!.id} />
-                    <input type="hidden" name="mentor_id" value={contacto.mentor_id} />
-                    <input type="hidden" name="estado" value={estado} />
-                    <button className={boton}>{estado === "considerada" ? "Considerar" : "Descartar"}</button>
-                  </form>)}
+                  {(["considerada", "descartada"] as const).map((estado) =>
+                    <FormularioSugerencia key={estado} proyectoId={proyecto.id} revisionId={actual!.id} mentorId={contacto.mentor_id} estado={estado} />)}
                 </div>
               </article>;
             })}</div>}
@@ -165,7 +160,7 @@ export default async function Compatibilidad() {
         </div>
         <div className="space-y-3">
           <h3 className="font-serif text-lg">Actualizar seguimiento</h3>
-          <FormularioNecesidades key={actual?.id ?? "sin-revision"} proyectoId={proyecto.id} actual={actual} />
+          <FormularioNecesidades proyectoId={proyecto.id} actual={actual} />
         </div>
       </section>;
     })}</div>

@@ -1,11 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { guardarContacto, registrarVinculo, solicitarContacto, type EstadoFormulario } from "../actions";
+import { Trash2 } from "lucide-react";
+import { guardarContacto, quitarVinculo, registrarVinculo, solicitarContacto, type EstadoFormulario } from "../actions";
 
 const inicial: EstadoFormulario = { message: "", success: false };
 const campo = "mt-1 h-9 w-full border bg-background px-3 text-sm outline-none focus:border-foreground";
 const boton = "inline-flex h-9 items-center border border-foreground bg-foreground px-4 text-sm text-background hover:opacity-85 disabled:opacity-50";
+
+export function FormularioQuitarVinculo({ mentorId, proyectoId }: { mentorId: string; proyectoId: string }) {
+  const [estado, accion, pendiente] = useActionState(quitarVinculo, inicial);
+  return <form action={accion} className="flex items-center gap-2">
+    <input type="hidden" name="mentor_id" value={mentorId} />
+    <input type="hidden" name="proyecto_id" value={proyectoId} />
+    <button type="submit" title="Quitar vínculo" aria-label="Quitar vínculo" className="p-1 hover:bg-muted disabled:opacity-50" disabled={pendiente}><Trash2 size={16} /></button>
+    {estado.message && <span role="status" className={estado.success ? "text-xs text-[#666]" : "text-xs text-destructive"}>{estado.message}</span>}
+  </form>;
+}
 
 type Contacto = {
   industria: string;

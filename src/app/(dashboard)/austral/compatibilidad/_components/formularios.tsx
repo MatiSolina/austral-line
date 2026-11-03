@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { designarTitular, registrarNecesidades, type Resultado } from "../actions";
+import { decidirSugerencia, designarTitular, quitarTitular, registrarNecesidades, type Resultado } from "../actions";
 
 const inicial: Resultado = { ok: true, mensaje: "" };
 const campo = "mt-1 w-full border bg-background px-3 py-2 text-sm outline-none focus:border-foreground";
@@ -39,14 +39,14 @@ export function FormularioNecesidades({ proyectoId, actual }: {
   </form>;
 }
 
-export function FormularioTitular({ proyectoId, mentores }: {
-  proyectoId: string; mentores: { id: string; nombre: string }[];
+export function FormularioTitular({ proyectoId, mentores, actualId }: {
+  proyectoId: string; mentores: { id: string; nombre: string }[]; actualId?: string;
 }) {
   const [estado, accion, pendiente] = useActionState(designarTitular, inicial);
   return <form action={accion} className="space-y-3 border-t pt-4 text-sm">
     <input type="hidden" name="proyecto_id" value={proyectoId} />
     <label className="block max-w-md">Mentor con vínculo formal
-      <select className={campo} name="mentor_id" required defaultValue="">
+      <select className={campo} name="mentor_id" required defaultValue={actualId ?? ""}>
         <option value="" disabled>Seleccionar mentor</option>
         {mentores.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
       </select>
@@ -56,8 +56,34 @@ export function FormularioTitular({ proyectoId, mentores }: {
       Confirmo que este mentor ya fue designado formalmente como titular del proyecto.
     </label>
     <div className="flex flex-wrap items-center gap-3">
-      <button className={boton} disabled={pendiente || mentores.length === 0}>Registrar titular</button>
+      <button className={boton} disabled={pendiente || mentores.length === 0}>{actualId ? "Cambiar titular" : "Registrar titular"}</button>
       {estado.mensaje && <p role="status" className={`text-sm ${estado.ok ? "text-[#666]" : "text-destructive"}`}>{estado.mensaje}</p>}
     </div>
+  </form>;
+}
+
+export function FormularioQuitarTitular({ proyectoId }: { proyectoId: string }) {
+  const [estado, accion, pendiente] = useActionState(quitarTitular, inicial);
+  return <form action={accion} className="flex flex-wrap items-center gap-3 text-sm">
+    <input type="hidden" name="proyecto_id" value={proyectoId} />
+    <label className="flex items-center gap-2"><input type="checkbox" name="confirmado" required />Confirmo que quiero quitar al titular.</label>
+    <button className="min-h-9 border px-3 disabled:opacity-50" disabled={pendiente}>Quitar titular</button>
+    {estado.mensaje && <p role="status" className={estado.ok ? "text-[#666]" : "text-destructive"}>{estado.mensaje}</p>}
+  </form>;
+}
+
+export function FormularioSugerencia({ proyectoId, revisionId, mentorId, estado }: {
+  proyectoId: string; revisionId: string; mentorId: string; estado: "considerada" | "descartada";
+}) {
+  const [resultado, accion, pendiente] = useActionState(decidirSugerencia, inicial);
+  return <form action={accion} className="space-y-1">
+    <input type="hidden" name="proyecto_id" value={proyectoId} />
+    <input type="hidden" name="revision_id" value={revisionId} />
+    <input type="hidden" name="mentor_id" value={mentorId} />
+    <input type="hidden" name="estado" value={estado} />
+    <button className="inline-flex min-h-9 items-center border px-3 text-sm hover:bg-muted disabled:opacity-50" disabled={pendiente}>
+      {pendiente ? "Guardando…" : estado === "considerada" ? "Considerar" : "Descartar"}
+    </button>
+    {resultado.mensaje && <p role="status" className={resultado.ok ? "text-[#666]" : "text-destructive"}>{resultado.mensaje}</p>}
   </form>;
 }

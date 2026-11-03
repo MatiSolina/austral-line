@@ -80,16 +80,27 @@ export async function registrarVinculo(
   return { success: true, message: "Vínculo formal registrado." };
 }
 
-export async function quitarVinculo(formData: FormData) {
+export async function quitarVinculo(_estado: EstadoFormulario, formData: FormData): Promise<EstadoFormulario> {
   await requireRol();
   const mentorId = String(formData.get("mentor_id") ?? "");
   const proyectoId = String(formData.get("proyecto_id") ?? "");
-  if (!uuid.test(mentorId) || !uuid.test(proyectoId)) return;
+  if (!uuid.test(mentorId) || !uuid.test(proyectoId)) {
+    return { success: false, message: "Vínculo inválido. Actualizá la página y probá de nuevo." };
+  }
   const supabase = await createClient();
-  const { error } = await supabase.from("austral_vinculos_mentor_proyecto")
-    .delete().eq("mentor_id", mentorId).eq("proyecto_id", proyectoId);
-  if (error) throw error;
+  const { data: titular, error: consultaError } = await supabase.from("austral_titulares_proyecto")
+    .select("mentor_id").eq("mentor_id", mentorId).eq("proyecto_id", proyectoId).maybeSingle();
+  if (consultaError) return { success: false, message: "No se pudo verificar el mentor titular." };
+  if (titular) return { success: false, message: "Primero quitá o cambiá al mentor titular en Compatibilidad." };
+  const { error, count } = await supabase.from("austral_vinculos_mentor_proyecto")
+    .delete({ count: "exact" }).eq("mentor_id", mentorId).eq("proyecto_id", proyectoId);
+  if (error) return { success: false, message: error.code === "23503"
+    ? "Primero quitá o cambiá al mentor titular en Compatibilidad."
+    : "No se pudo quitar el vínculo. Probá de nuevo." };
+  if (!count) return { success: false, message: "Ese vínculo ya no está registrado." };
   revalidatePath(ruta);
+  revalidatePath("/austral/compatibilidad");
+  return { success: true, message: "Vínculo quitado." };
 }
 
 export async function solicitarContacto(
