@@ -12,7 +12,6 @@ import { conEvento, elegirEvento } from "../_eventos";
 import { fechaHora } from "../comunicaciones/plantillas";
 import { desactualizado, duracion, estados, limiteEntrega, MINUTOS_POR_SALON, PALABRAS_POR_MINUTO, tamano, tipos, yaPaso } from "../_resumenes";
 import { generar } from "./acciones";
-import { hayIA } from "./agente";
 import { cargarEvento, type Equipo } from "./datos";
 import { Subir } from "./subir";
 
@@ -42,11 +41,6 @@ export default async function Resumenes({ searchParams }: PageProps<"/jurado/res
 
       {typeof ok === "string" && <p className="mb-6 border-l-2 border-primary pl-4 text-sm">{ok}</p>}
       {typeof error === "string" && <p role="alert" className="mb-6 border-l-2 border-destructive pl-4 text-sm text-destructive">{error}</p>}
-      {!hayIA() && (
-        <p className="mb-6 border-l-2 pl-4 text-sm text-[#666]">
-          Falta la clave de IA (<code>AI_GATEWAY_API_KEY</code>, pedísela al profe): podés cargar el material, pero el agente solo hace los controles y no redacta.
-        </p>
-      )}
 
       <form className="mb-10 flex flex-wrap items-end gap-3">
         <div className="grid gap-2">
