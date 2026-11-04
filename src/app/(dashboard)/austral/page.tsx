@@ -14,7 +14,10 @@ export default async function Austral() {
     <>
       <div className="mb-6 flex items-baseline justify-between gap-4">
         <h1 className="font-serif text-2xl">Eventos</h1>
-        <Link href="/austral/preparacion" className="text-sm underline underline-offset-4">Preparación de jurados</Link>
+        <div className="flex gap-4">
+          <Link href="/austral/matching" className="text-sm underline underline-offset-4">Matching de alumnos</Link>
+          <Link href="/austral/preparacion" className="text-sm underline underline-offset-4">Preparación de jurados</Link>
+        </div>
       </div>
       <Table>
         <TableHeader>

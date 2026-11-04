@@ -154,3 +154,50 @@ export async function corregirNota(formData: FormData) {
   revalidatePath("/alumnos/entregas");
   redirect(volver);
 }
+
+// Checklist de cada hito: los profesores cargan los requisitos formales de la entrega.
+export async function agregarRequisito(formData: FormData) {
+  await requireRol(); // sin roles = solo admin (profesores)
+  const volver = volverA(formData);
+  const texto = String(formData.get("texto") ?? "").trim();
+  if (texto.length < 3) redirect(`${volver}&error=${encodeURIComponent("Escribí el requisito (al menos 3 caracteres).")}`);
+  const supabase = await createClient();
+  const { error } = await supabase.from("alumnos_checklist_items").insert({
+    evento_id: String(formData.get("evento_id")),
+    texto: texto.slice(0, 300),
+    obligatorio: formData.get("obligatorio") === "on",
+  });
+  if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo agregar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+export async function quitarRequisito(formData: FormData) {
+  await requireRol();
+  const volver = volverA(formData);
+  const supabase = await createClient();
+  const { error } = await supabase.from("alumnos_checklist_items").delete().eq("id", String(formData.get("item_id")));
+  if (error) redirect(`${volver}&error=${encodeURIComponent(`No se pudo quitar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+// Un integrante marca o desmarca un requisito: en la lista del grupo, o en la suya si es la entrega individual.
+export async function marcarRequisito(formData: FormData) {
+  const persona = await requireRol("alumno");
+  const volver = volverA(formData);
+  const itemId = String(formData.get("item_id"));
+  const individual = formData.get("individual") === "1";
+  const proyectoId = String(formData.get("proyecto_id"));
+  const supabase = await createClient();
+  const dueno = individual ? { proyecto_id: null, persona_id: persona.id } : { proyecto_id: proyectoId, persona_id: null };
+  const { error } =
+    formData.get("marcar") === "1"
+      ? await supabase.from("alumnos_checklist_marcas").insert({ item_id: itemId, ...dueno, marcado_por: persona.id })
+      : individual
+        ? await supabase.from("alumnos_checklist_marcas").delete().eq("item_id", itemId).eq("persona_id", persona.id)
+        : await supabase.from("alumnos_checklist_marcas").delete().eq("item_id", itemId).eq("proyecto_id", proyectoId);
+  if (error && error.code !== "23505") redirect(`${volver}&error=${encodeURIComponent(`No se pudo guardar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
