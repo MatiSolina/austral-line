@@ -422,3 +422,70 @@ insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar)
 select p.id, m.id, now() + interval '4 days', 'Sala 3'
 from proyectos p, personas m
 where p.nombre = 'Tutorly' and m.email = 'pablo@empresa.com';
+
+-- GRUPO ALUMNOS: armado de grupos. Tres alumnos más sin grupo (logins con contraseña austral123):
+-- Fede arma "Finanzas para pymes" e invitó a Diego; Gina y Hugo ya enviaron "Huerta urbana" a los profesores.
+-- El armado cierra en 14 días.
+insert into personas (nombre, email, rol) values
+  ('Fede Alumno', 'fede@alumnos.austral.edu.ar', 'alumno'),
+  ('Gina Alumna', 'gina@alumnos.austral.edu.ar', 'alumno'),
+  ('Hugo Alumno', 'hugo@alumnos.austral.edu.ar', 'alumno')
+on conflict (email) do nothing;
+
+select pg_temp.crear_login(email) from personas
+  where email in ('fede@alumnos.austral.edu.ar', 'gina@alumnos.austral.edu.ar', 'hugo@alumnos.austral.edu.ar');
+
+insert into alumnos_perfiles (persona_id, sobre_mi, busca_equipo)
+select pe.id, v.sobre_mi, v.busca_equipo
+from personas pe join (values
+  ('fede@alumnos.austral.edu.ar', 'Me gustan los números y las pymes.', true),
+  ('gina@alumnos.austral.edu.ar', null, false),
+  ('hugo@alumnos.austral.edu.ar', 'Trabajo en el campo de mi familia.', true)
+) as v(email, sobre_mi, busca_equipo) on v.email = pe.email;
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id
+from (values
+  ('fede@alumnos.austral.edu.ar', 'Economía Empresarial'),
+  ('gina@alumnos.austral.edu.ar', 'Marketing'),
+  ('hugo@alumnos.austral.edu.ar', 'Agronegocios')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera;
+
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas
+from (values
+  ('fede@alumnos.austral.edu.ar', 'Finanzas y fintech', 5), ('fede@alumnos.austral.edu.ar', 'Agro y alimentos', 4),
+  ('fede@alumnos.austral.edu.ar', 'Salud', 2), ('fede@alumnos.austral.edu.ar', 'Educación', 3),
+  ('gina@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 5), ('gina@alumnos.austral.edu.ar', 'Agro y alimentos', 4),
+  ('gina@alumnos.austral.edu.ar', 'Consumo y retail', 4), ('gina@alumnos.austral.edu.ar', 'Finanzas y fintech', 1),
+  ('hugo@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('hugo@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 4),
+  ('hugo@alumnos.austral.edu.ar', 'Tecnología y software', 3), ('hugo@alumnos.austral.edu.ar', 'Moda y diseño', 1)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes;
+
+update alumnos_armado_config set cierre = now() + interval '14 days' where id = 1;
+
+with p as (
+  insert into alumnos_propuestas (nombre, creada_por, estado)
+  select 'Huerta urbana', id, 'enviada' from personas where email = 'gina@alumnos.austral.edu.ar'
+  returning id
+)
+insert into alumnos_propuesta_miembros (propuesta_id, persona_id, estado, respondido_at)
+select p.id, pe.id, 'aceptado', now() from p, personas pe
+where pe.email in ('gina@alumnos.austral.edu.ar', 'hugo@alumnos.austral.edu.ar');
+
+with p as (
+  insert into alumnos_propuestas (nombre, creada_por)
+  select 'Finanzas para pymes', id from personas where email = 'fede@alumnos.austral.edu.ar'
+  returning id
+)
+insert into alumnos_propuesta_miembros (propuesta_id, persona_id, estado, invitado_por, respondido_at)
+select p.id, pe.id,
+       case when pe.email = 'fede@alumnos.austral.edu.ar' then 'aceptado' else 'invitado' end,
+       (select id from personas where email = 'fede@alumnos.austral.edu.ar'),
+       case when pe.email = 'fede@alumnos.austral.edu.ar' then now() end
+from p, personas pe
+where pe.email in ('fede@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar');
