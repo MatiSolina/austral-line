@@ -14,6 +14,9 @@ import { cargarEvento, type Archivo, type Equipo } from "./datos";
 const MODELO = "anthropic/claude-sonnet-5.5";
 const MAX_CARACTERES_TRANSCRIPCION = 150_000; // ~2 horas de sesión
 const MIN_CARACTERES_TRANSCRIPCION = 300; // menos que esto no es una sesión transcripta
+// Si el gateway se cuelga, cortamos y el catch muestra "La IA no respondió" en vez de dejar "Generando…" para siempre.
+const TOPE_IA_MS = 120_000;
+// Costo: cada clic manda el PDF y la transcripción dos veces (redactar y revisar). Por eso regenerar pide confirmación.
 
 export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
 
@@ -104,6 +107,7 @@ async function leer(supabase: Supabase, archivo: Archivo): Promise<{ error?: str
 }
 
 // Genera (o rehace) el resumen de un equipo. Si estaba aprobado, vuelve a revisión hasta que el admin lo apruebe de nuevo.
+// Si frena, el texto que había queda intacto (solo cambian el estado, el reporte y los archivos).
 export async function generarResumen(supabase: Supabase, eventoId: string, proyectoId: string, adminId: string): Promise<Resultado> {
   const [datos, proyecto] = await Promise.all([
     cargarEvento(supabase, eventoId),
@@ -114,13 +118,14 @@ export async function generarResumen(supabase: Supabase, eventoId: string, proye
   const equipo = datos.equipos.find((q) => q.id === proyectoId);
   if (!equipo) return { ok: false, mensaje: `${proyecto.data.nombre} no está en ningún salón de ${datos.evento.nombre}. Asignalo desde Salones.` };
 
+  // Sin `texto` (cuando el agente frena) no se toca el resumen que ya había: el admin no pierde lo que corrigió.
+  // El upsert solo pisa las columnas que manda.
   const guardar = async (campos: { estado: "borrador" | "revisar"; texto?: string; aviso: string | null }) => {
     const { error } = await supabase.from("jurado_resumenes").upsert(
       {
         evento_id: eventoId,
         proyecto_id: proyectoId,
-        texto: campos.texto?.trim() || null,
-        palabras: contarPalabras(campos.texto ?? null),
+        ...(campos.texto !== undefined && { texto: campos.texto.trim() || null, palabras: contarPalabras(campos.texto) }),
         estado: campos.estado,
         aviso: campos.aviso,
         archivos: equipo.archivos.map((a) => a.id),
@@ -136,7 +141,7 @@ export async function generarResumen(supabase: Supabase, eventoId: string, proye
   };
   const frenar = async (errores: string[]) => {
     await guardar({ estado: "revisar", aviso: reporte(equipo, errores) });
-    return { ok: false, mensaje: `${equipo.nombre}: el agente frenó (${errores.length === 1 ? errores[0] : `${errores.length} problemas`}). Quedó el reporte en el panel.` };
+    return { ok: false, mensaje: `${equipo.nombre}: el agente frenó (${errores.length === 1 ? errores[0] : `${errores.length} problemas`}). Quedó el reporte en el panel; el texto anterior se conserva.` };
   };
 
   // 1. Controles sin IA: material completo y legible.
@@ -168,6 +173,7 @@ export async function generarResumen(supabase: Supabase, eventoId: string, proye
       model: MODELO,
       instructions: instruccionesRedaccion(equipo.maximo),
       output: Output.object({ schema: schemaRedaccion }),
+      abortSignal: AbortSignal.timeout(TOPE_IA_MS),
       messages: [{ role: "user", content: [{ type: "text", text: `Datos del proyecto en la app:\n${JSON.stringify(contexto, null, 2)}` }, ...material] }],
     }));
     if (!redaccion.material_del_equipo) {
@@ -177,6 +183,7 @@ export async function generarResumen(supabase: Supabase, eventoId: string, proye
       model: MODELO,
       instructions: instruccionesRevision,
       output: Output.object({ schema: schemaRevision }),
+      abortSignal: AbortSignal.timeout(TOPE_IA_MS),
       messages: [{
         role: "user",
         content: [
