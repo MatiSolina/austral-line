@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronDown, UserRound, UsersRound, type LucideIcon } from "lucide-react";
-import { guardarTipoHito } from "./_acciones";
+import { agregarRequisito, guardarTipoHito, quitarRequisito } from "./_acciones";
+import { Checklist, type Requisito } from "./_components/checklist";
 import { SubirEntrega } from "./_components/subir-entrega";
 import { Versiones, type Version } from "./_components/versiones";
 
@@ -105,13 +106,16 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
   const esAlumno = persona.rol === "alumno";
   const esProfesor = persona.rol === "admin";
 
-  const [eventos, tipos, grupales, integrantes] = await Promise.all([
+  const MARCAS = "item_id, proyecto_id, persona_id, quien:personas!alumnos_checklist_marcas_marcado_por_fkey(nombre)";
+  const [eventos, tipos, grupales, integrantes, requisitos, marcasGrupo] = await Promise.all([
     supabase.from("eventos").select("id, nombre, inicio").order("inicio"),
     supabase.from("alumnos_hitos_tipo").select("evento_id, tipo, apertura, cierre"),
     supabase.from("alumnos_entregas").select(SELECT_ENTREGA).eq("proyecto_id", proyecto.id).order("version", { ascending: false }),
     supabase.from("proyecto_integrantes").select("persona_id, personas(nombre)").eq("proyecto_id", proyecto.id),
+    supabase.from("alumnos_checklist_items").select("id, evento_id, texto, obligatorio").order("orden").order("created_at"),
+    supabase.from("alumnos_checklist_marcas").select(MARCAS).eq("proyecto_id", proyecto.id),
   ]);
-  for (const r of [eventos, tipos, grupales, integrantes]) if (r.error) throw r.error;
+  for (const r of [eventos, tipos, grupales, integrantes, requisitos, marcasGrupo]) if (r.error) throw r.error;
 
   // Individuales: el alumno ve las suyas; los profesores, las de cada integrante del grupo elegido.
   const idsIndividuales = esAlumno ? [persona.id] : esProfesor ? integrantes.data!.map((i) => i.persona_id) : [];
@@ -119,6 +123,26 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
     ? await supabase.from("alumnos_entregas").select(SELECT_ENTREGA).in("persona_id", idsIndividuales).order("version", { ascending: false })
     : { data: [], error: null };
   if (individuales.error) throw individuales.error;
+  const marcasIndividuales = idsIndividuales.length
+    ? await supabase.from("alumnos_checklist_marcas").select(MARCAS).in("persona_id", idsIndividuales)
+    : { data: [], error: null };
+  if (marcasIndividuales.error) throw marcasIndividuales.error;
+
+  // Checklist de un hito, con quién marcó cada requisito: del grupo (dueno = null) o de un alumno.
+  const checklistDe = (eventoId: string, dueno: string | null): Requisito[] => {
+    const marcas = dueno ? marcasIndividuales.data!.filter((m) => m.persona_id === dueno) : marcasGrupo.data!;
+    return requisitos.data!
+      .filter((q) => q.evento_id === eventoId)
+      .map((q) => ({
+        id: q.id,
+        texto: q.texto,
+        obligatorio: q.obligatorio,
+        marcadoPor: (() => {
+          const m = marcas.find((x) => x.item_id === q.id);
+          return m ? (m.quien?.nombre ?? "alguien") : null;
+        })(),
+      }));
+  };
 
   const todas = [...grupales.data!, ...individuales.data] as (Version & { evento_id: string; persona_id: string | null })[];
   const tipoDe = new Map(tipos.data!.map((t) => [t.evento_id, t.tipo as Tipo]));
@@ -234,6 +258,45 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                     </form>
                   )}
 
+                  {esProfesor && (
+                    <div className="grid gap-2 border bg-background p-4 text-sm">
+                      <span className="font-medium">Checklist de la entrega (requisitos formales)</span>
+                      {requisitos.data!.filter((q) => q.evento_id === ev.id).length === 0 && (
+                        <p className="text-xs text-[#666]">Sin requisitos cargados: los alumnos no ven checklist en este hito.</p>
+                      )}
+                      <ul className="grid gap-1">
+                        {requisitos.data!.filter((q) => q.evento_id === ev.id).map((q) => (
+                          <li key={q.id} className="flex items-center gap-2">
+                            <span>{q.texto}{!q.obligatorio && <span className="text-[#666]"> (opcional)</span>}</span>
+                            <form action={quitarRequisito} className="ml-auto">
+                              <input type="hidden" name="item_id" value={q.id} />
+                              <input type="hidden" name="evento_id" value={ev.id} />
+                              <input type="hidden" name="proyecto_id" value={proyecto.id} />
+                              <button type="submit" className="text-xs text-[#666] hover:text-destructive">Quitar</button>
+                            </form>
+                          </li>
+                        ))}
+                      </ul>
+                      <form action={agregarRequisito} className="flex flex-wrap items-center gap-2">
+                        <input type="hidden" name="evento_id" value={ev.id} />
+                        <input type="hidden" name="proyecto_id" value={proyecto.id} />
+                        <input
+                          name="texto"
+                          required
+                          minLength={3}
+                          maxLength={300}
+                          placeholder="Por ejemplo: PDF de hasta 10 páginas, con portada"
+                          aria-label="Requisito nuevo"
+                          className="h-8 min-w-64 flex-1 border bg-card px-2 text-sm"
+                        />
+                        <label className="flex items-center gap-1.5 text-[#666]">
+                          <input type="checkbox" name="obligatorio" defaultChecked className="size-4 accent-primary" /> Obligatorio
+                        </label>
+                        <Button type="submit" size="sm" variant="outline">Agregar</Button>
+                      </form>
+                    </div>
+                  )}
+
                   {pideGrupal && (
                     <Bloque
                       icono={UsersRound}
@@ -241,6 +304,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       detalle="La ven el grupo, su mentor y los profesores."
                       versiones={delGrupo.length}
                     >
+                      <Checklist requisitos={checklistDe(ev.id, null)} puedeMarcar={esAlumno} proyectoId={proyecto.id} eventoId={ev.id} individual={false} />
                       <Versiones {...comun} versiones={delGrupo} vacio="Todavía no hay nada entregado por el grupo para este hito." />
                       {esAlumno && !todaviaNoAbre && <SubirEntrega proyectoId={proyecto.id} eventoId={ev.id} hayVersiones={delGrupo.length > 0} />}
                     </Bloque>
@@ -253,6 +317,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                       detalle="La ven solo vos y los profesores."
                       versiones={individualDe(persona.id).length}
                     >
+                      <Checklist requisitos={checklistDe(ev.id, persona.id)} puedeMarcar proyectoId={proyecto.id} eventoId={ev.id} individual />
                       <Versiones {...comun} versiones={individualDe(persona.id)} vacio="Todavía no subiste tu entrega individual." />
                       {!todaviaNoAbre && <SubirEntrega proyectoId={null} eventoId={ev.id} hayVersiones={individualDe(persona.id).length > 0} />}
                     </Bloque>
@@ -269,6 +334,7 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
                           detalle="La ven solo el alumno y los profesores."
                           versiones={individualDe(i.persona_id).length}
                         >
+                          <Checklist requisitos={checklistDe(ev.id, i.persona_id)} puedeMarcar={false} proyectoId={proyecto.id} eventoId={ev.id} individual />
                           <Versiones {...comun} versiones={individualDe(i.persona_id)} vacio="Todavía no entregó." />
                         </Bloque>
                       ))}

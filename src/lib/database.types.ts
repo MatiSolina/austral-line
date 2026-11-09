@@ -69,6 +69,140 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"alumnos_checklist_items": {
+                  Row: {
+                    "created_at": string,"evento_id": string,"id": string,"obligatorio": boolean,"orden": number,"texto": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"evento_id": string,"id"?: string,"obligatorio"?: boolean,"orden"?: number,"texto": string
+                  }
+                  Update: {
+                    "created_at"?: string,"evento_id"?: string,"id"?: string,"obligatorio"?: boolean,"orden"?: number,"texto"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_checklist_items_evento_id_fkey"
+      columns: ["evento_id"]
+isOneToOne: false
+      referencedRelation: "eventos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_checklist_marcas": {
+                  Row: {
+                    "item_id": string,"marcado_at": string,"marcado_por": string | null,"persona_id": string | null,"proyecto_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "item_id": string,"marcado_at"?: string,"marcado_por"?: string | null,"persona_id"?: string | null,"proyecto_id"?: string | null
+                  }
+                  Update: {
+                    "item_id"?: string,"marcado_at"?: string,"marcado_por"?: string | null,"persona_id"?: string | null,"proyecto_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_checklist_marcas_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_checklist_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_checklist_marcas_marcado_por_fkey"
+      columns: ["marcado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_checklist_marcas_marcado_por_fkey"
+      columns: ["marcado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_checklist_marcas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_checklist_marcas_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_checklist_marcas_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_competencia_analisis": {
+                  Row: {
+                    "breve": NonNullable<Json>,"created_at": string,"estado": string,"id": string,"modelo": string | null,"pedido_por": string | null,"proyecto_id": string,"resultado": Json | null,"terminado_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "breve": NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"modelo"?: string | null,"pedido_por"?: string | null,"proyecto_id": string,"resultado"?: Json | null,"terminado_at"?: string | null
+                  }
+                  Update: {
+                    "breve"?: NonNullable<Json>,"created_at"?: string,"estado"?: string,"id"?: string,"modelo"?: string | null,"pedido_por"?: string | null,"proyecto_id"?: string,"resultado"?: Json | null,"terminado_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_competencia_analisis_pedido_por_fkey"
+      columns: ["pedido_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_competencia_analisis_pedido_por_fkey"
+      columns: ["pedido_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_competencia_analisis_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_competencia_breve": {
+                  Row: {
+                    "mercado": string,"problema": string,"proyecto_id": string,"publico": string,"solucion": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "mercado": string,"problema": string,"proyecto_id": string,"publico": string,"solucion": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "mercado"?: string,"problema"?: string,"proyecto_id"?: string,"publico"?: string,"solucion"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_competencia_breve_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: true
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_competencia_breve_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_competencia_breve_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"alumnos_entregas": {
                   Row: {
                     "archivo_path": string,"created_at": string,"evento_id": string,"id": string,"nombre_archivo": string,"nota": string | null,"persona_id": string | null,"proyecto_id": string | null,"subida_por": string | null,"tamano_bytes": number,"version": number
@@ -1825,11 +1959,20 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "alumnos_calcular_intereses_grupo":
+            "alumnos_analisis_hoy":
+{ Args: { "p_proyecto": string }; Returns: number
+                           },
+"alumnos_analisis_limite":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"alumnos_calcular_intereses_grupo":
 { Args: { "p_proyecto": string }; Returns: number
                            },
 "alumnos_cierre_hito":
 { Args: { "p_evento": string }; Returns: string
+                           },
+"alumnos_completar_analisis":
+{ Args: { "p_analisis": string,"p_modelo"?: string,"p_resultado"?: Json }; Returns: undefined
                            },
 "alumnos_editar_nota_entrega":
 { Args: { "p_entrega": string,"p_nota": string }; Returns: undefined
@@ -1847,6 +1990,9 @@ isOneToOne: false
                            },
 "alumnos_guardar_perfil":
 { Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
+                           },
+"alumnos_reservar_analisis":
+{ Args: { "p_proyecto": string }; Returns: string
                            },
 "alumnos_soy_integrante":
 { Args: { "p_proyecto": string }; Returns: boolean
