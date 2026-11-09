@@ -30,6 +30,10 @@ export const estados: Record<string, { texto: string; variante: "default" | "sec
   aprobado: { texto: "Aprobado", variante: "default" },
 };
 
+// Regenerar pisa el texto que el admin corrigió (y saca de los jurados uno aprobado): siempre se confirma.
+export const MENSAJE_REGENERAR =
+  "Vas a reemplazar el resumen actual por uno nuevo del agente. Si estaba aprobado, los jurados dejan de verlo hasta que lo apruebes de nuevo. ¿Seguimos?";
+
 export const contarPalabras = (texto: string | null) => (texto ?? "").trim().split(/\s+/).filter(Boolean).length;
 
 export function duracion(palabras: number) {

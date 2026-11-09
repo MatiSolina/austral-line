@@ -11,7 +11,7 @@ import { BotonEnviar } from "../../_components/boton-enviar";
 import { Escuchar } from "../../_components/escuchar";
 import { conEvento } from "../../_eventos";
 import { fechaHora } from "../../comunicaciones/plantillas";
-import { BUCKET, desactualizado, duracion, estados, tamano, tipos } from "../../_resumenes";
+import { BUCKET, desactualizado, duracion, estados, MENSAJE_REGENERAR, tamano, tipos } from "../../_resumenes";
 import { despublicar, generar, guardar } from "../acciones";
 import { cargarEvento } from "../datos";
 
@@ -89,8 +89,12 @@ export default async function Revisar({ params, searchParams }: PageProps<"/jura
         <p className="mt-2 text-xs text-[#666]">Para cambiar el material, subilo de nuevo desde el panel.</p>
         <form action={generar} className="mt-4">
           {ocultos}
-          <BotonEnviar variant="outline" enviando="Generando…">{r?.texto ? "Regenerar con IA" : "Generar con IA"}</BotonEnviar>
-          {r?.estado === "aprobado" && <span className="ml-3 text-sm text-[#666]">Regenerar lo saca de los jurados hasta que lo vuelvas a aprobar.</span>}
+          {r?.texto ? (
+            <BotonConfirmar variant="outline" mensaje={MENSAJE_REGENERAR} enviando="Generando…">Regenerar con IA</BotonConfirmar>
+          ) : (
+            <BotonEnviar variant="outline" enviando="Generando…">Generar con IA</BotonEnviar>
+          )}
+          {r?.texto && <span className="ml-3 text-sm text-[#666]">Reemplaza el texto actual{r.estado === "aprobado" ? " y lo saca de los jurados hasta que lo vuelvas a aprobar" : ""}.</span>}
         </form>
       </section>
 
@@ -108,12 +112,13 @@ export default async function Revisar({ params, searchParams }: PageProps<"/jura
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 border-t pt-5">
-            <BotonEnviar variant="outline" enviando="Guardando…">Guardar cambios</BotonEnviar>
+            <BotonEnviar variant="outline" enviando="Guardando…">{r.estado === "aprobado" ? "Guardar sin aprobar" : "Guardar cambios"}</BotonEnviar>
             <BotonEnviar name="accion" value="aprobar" enviando="Aprobando…">
               {r.estado === "aprobado" ? "Guardar y mantener aprobado" : "Aprobar para los jurados"}
             </BotonEnviar>
           </div>
           <p className="text-xs text-[#666]">
+            {r.estado === "aprobado" && "\"Guardar sin aprobar\" lo saca de los jurados hasta que lo vuelvas a aprobar. "}
             Antes de aprobar chequeá que no evalúe ni valore el proyecto y que todo lo que dice esté en la presentación o en la sesión.
           </p>
         </form>

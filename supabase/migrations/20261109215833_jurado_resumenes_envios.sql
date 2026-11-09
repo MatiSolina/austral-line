@@ -14,6 +14,7 @@ create table jurado_resumen_envios (
   estado text not null check (estado in ('programado', 'enviado', 'simulado', 'cancelado', 'error')),
   resend_id text, -- id del mail en Resend, para poder cancelarlo
   error text,
+  reporte text, -- en las alertas: el reporte del agente, para no mandar dos veces la misma alerta
   created_at timestamptz not null default now()
 );
 create index jurado_resumen_envios_evento on jurado_resumen_envios (evento_id, tipo);

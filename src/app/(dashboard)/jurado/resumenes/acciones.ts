@@ -74,20 +74,6 @@ function volver(formData: FormData, tipo: "ok" | "error", mensaje: string): neve
   redirect(`${destino}${separador}${tipo}=${encodeURIComponent(mensaje)}`);
 }
 
-export async function borrarArchivo(formData: FormData) {
-  await requireRol();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("jurado_resumen_archivos")
-    .delete()
-    .eq("id", String(formData.get("archivo_id")))
-    .select("nombre, ruta")
-    .maybeSingle();
-  if (error) throw error;
-  if (data) await supabase.storage.from(BUCKET).remove([data.ruta]);
-  volver(formData, "ok", data ? `"${data.nombre}" borrado.` : "El archivo ya no estaba.");
-}
-
 export async function generar(formData: FormData) {
   const persona = await requireRol();
   const supabase = await createClient();
@@ -96,12 +82,25 @@ export async function generar(formData: FormData) {
 }
 
 // Guarda lo que editó el admin. Con `aprobar`, además lo publica para los jurados del salón del equipo.
+// Sin `aprobar`, cualquier cambio a un resumen aprobado lo vuelve a revisión: lo que ven los jurados siempre está aprobado.
 export async function guardar(formData: FormData) {
   const persona = await requireRol();
   const supabase = await createClient();
   const aprobar = formData.get("accion") === "aprobar";
   const texto = String(formData.get("texto") ?? "").trim() || null;
-  if (aprobar && !texto) volver(formData, "error", "Para aprobar, el resumen no puede estar vacío.");
+  if (!texto) {
+    volver(formData, "error", aprobar
+      ? "Para aprobar, el resumen no puede estar vacío."
+      : "El resumen no puede quedar vacío. Si querés rehacerlo, usá \"Regenerar con IA\".");
+  }
+  const eventoId = String(formData.get("evento_id"));
+  const proyectoId = String(formData.get("proyecto_id"));
+  const { data: actual, error: errorActual } = await supabase
+    .from("jurado_resumenes").select("estado").eq("evento_id", eventoId).eq("proyecto_id", proyectoId).maybeSingle();
+  if (errorActual) throw errorActual;
+  if (!actual) volver(formData, "error", "No encontramos el resumen. Generalo de nuevo.");
+  const sacaDeJurados = !aprobar && actual.estado === "aprobado";
+
   const ahora = new Date().toISOString();
   const { error } = await supabase
     .from("jurado_resumenes")
@@ -110,11 +109,17 @@ export async function guardar(formData: FormData) {
       palabras: contarPalabras(texto),
       updated_at: ahora,
       ...(aprobar && { estado: "aprobado", aviso: null, aprobado_por: persona.id, aprobado_at: ahora }),
+      // Los "Con aviso" mantienen su estado y su aviso hasta que se aprueben.
+      ...(sacaDeJurados && { estado: "borrador", aprobado_por: null, aprobado_at: null }),
     })
-    .eq("evento_id", String(formData.get("evento_id")))
-    .eq("proyecto_id", String(formData.get("proyecto_id")));
+    .eq("evento_id", eventoId)
+    .eq("proyecto_id", proyectoId);
   if (error) throw error;
-  volver(formData, "ok", aprobar ? "Resumen aprobado: ya lo ven los jurados de su salón." : "Cambios guardados.");
+  volver(formData, "ok", aprobar
+    ? "Resumen aprobado: ya lo ven los jurados de su salón."
+    : sacaDeJurados
+      ? "Cambios guardados. El resumen volvió a revisión: los jurados no lo ven hasta que lo apruebes de nuevo."
+      : "Cambios guardados.");
 }
 
 const LIMITE_RESEND = 30 * 24 * 60 * 60 * 1000; // Resend programa hasta 30 días antes
