@@ -198,7 +198,7 @@ export async function importarPerfiles(texto: string): Promise<{ ok: boolean; me
   const salteadas = filas.length - validas.length;
   return {
     ok: validas.length > 0,
-    mensaje: `Se importaron ${validas.length} perfil${validas.length === 1 ? "" : "es"}${salteadas ? `; ${salteadas} fila${salteadas === 1 ? "" : "s"} con errores no se cargaron` : ""}.`,
+    mensaje: `${validas.length === 1 ? "Se importó 1 perfil" : `Se importaron ${validas.length} perfiles`}${salteadas ? `; ${salteadas === 1 ? "1 fila con errores no se cargó" : `${salteadas} filas con errores no se cargaron`}` : ""}.`,
   };
 }
 

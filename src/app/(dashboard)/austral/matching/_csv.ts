@@ -104,6 +104,8 @@ export function validar(
         const nivel = nivelesValidos[sinTildes(corte > 0 ? parte.slice(corte + 1) : "2")];
         const h = habilidadPorNombre.get(sinTildes(nombre));
         if (!h) errores.push(`Habilidad desconocida: "${nombre.trim()}".`);
+        // Una habilidad dos veces haría fallar el alta en la base después de borrar las que tenía el alumno.
+        else if (habilidades.some((x) => x.id === h.id)) errores.push(`Habilidad repetida: ${h.nombre}.`);
         else if (!nivel) errores.push(`Nivel inválido para ${h.nombre} (básico, intermedio o avanzado).`);
         else habilidades.push({ id: h.id, nombre: h.nombre, nivel });
       }
