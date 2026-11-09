@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BotonConfirmar } from "../_components/boton-confirmar";
 import { BotonEnviar } from "../_components/boton-enviar";
 import { conEvento, elegirEvento } from "../_eventos";
 import { fechaHora } from "../comunicaciones/plantillas";
-import { desactualizado, duracion, estados, limiteEntrega, MINUTOS_POR_SALON, PALABRAS_POR_MINUTO, tamano, tipos, yaPaso } from "../_resumenes";
+import { desactualizado, duracion, estados, limiteEntrega, MENSAJE_REGENERAR, MINUTOS_POR_SALON, PALABRAS_POR_MINUTO, tamano, tipos, yaPaso } from "../_resumenes";
 import { generar } from "./acciones";
 import { cargarEvento, type Equipo } from "./datos";
 import { Subir } from "./subir";
@@ -121,7 +122,11 @@ export default async function Resumenes({ searchParams }: PageProps<"/jurado/res
                                 <input type="hidden" name="evento_id" value={datos.evento.id} />
                                 <input type="hidden" name="proyecto_id" value={q.id} />
                                 <input type="hidden" name="volver" value={volver} />
-                                <BotonEnviar variant={q.resumen ? "ghost" : "outline"} enviando="Generando…">{q.resumen ? "Regenerar" : "Generar"}</BotonEnviar>
+                                {q.resumen?.texto ? (
+                                  <BotonConfirmar mensaje={MENSAJE_REGENERAR} enviando="Generando…" className="text-[#666] hover:text-primary">Regenerar</BotonConfirmar>
+                                ) : (
+                                  <BotonEnviar variant={q.resumen ? "ghost" : "outline"} enviando="Generando…">{q.resumen ? "Regenerar" : "Generar"}</BotonEnviar>
+                                )}
                               </form>
                               {q.resumen && (
                                 <Link href={`/jurado/resumenes/${q.id}?evento=${datos.evento.id}`} className="text-sm underline underline-offset-4 hover:text-primary">

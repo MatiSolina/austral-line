@@ -9,6 +9,7 @@ import { CircleAlert, CircleCheck, CircleHelp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { evaluarGrupo, MINIMO_CARRERAS } from "../_lib/interdisciplina";
 import { InteresesGrupo } from "./intereses-grupo";
+import { GruposCompatibles } from "./grupos-compatibles";
 
 const SUGERENCIAS = 3;
 
@@ -23,15 +24,17 @@ const ESTILO = {
 export async function MiGrupo({ personaId, guardadoEn }: { personaId: string; guardadoEn?: string }) {
   const supabase = await createClient();
 
-  const [integrantes, carreras, perfiles, respuestas, maestro] = await Promise.all([
+  const [integrantes, carreras, perfiles, respuestas, maestro, compatibles] = await Promise.all([
     supabase.from("proyecto_integrantes").select("proyecto_id, persona_id, proyectos(nombre), personas(nombre)"),
     // RLS: la mía, la de mis compañeros de proyecto y la de quienes buscan equipo.
     supabase.from("alumnos_carreras").select("persona_id, alumnos_carreras_maestro(nombre)"),
     supabase.from("alumnos_perfiles").select("persona_id, busca_equipo, personas:personas_contacto(nombre, email)"),
     supabase.from("alumnos_intereses").select("persona_id, interes_id, estrellas"),
     supabase.from("alumnos_intereses_maestro").select("id, nombre"),
+    // Pares de grupos que podrían unirse: se pide una sola vez para todas las tarjetas.
+    supabase.rpc("alumnos_grupos_compatibles"),
   ]);
-  for (const r of [integrantes, carreras, perfiles, respuestas, maestro]) if (r.error) throw r.error;
+  for (const r of [integrantes, carreras, perfiles, respuestas, maestro, compatibles]) if (r.error) throw r.error;
 
   const misProyectos = [...new Set(integrantes.data!.filter((i) => i.persona_id === personaId).map((i) => i.proyecto_id))];
 
@@ -165,6 +168,7 @@ export async function MiGrupo({ personaId, guardadoEn }: { personaId: string; gu
               miembros={miembros.map((m) => ({ id: m.persona_id, nombre: m.personas.nombre }))}
               guardado={guardadoEn === proyectoId}
             />
+            <GruposCompatibles proyectoId={proyectoId} pares={compatibles.data!} />
           </article>
         );
       })}
