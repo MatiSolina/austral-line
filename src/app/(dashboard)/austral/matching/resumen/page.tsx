@@ -1,10 +1,12 @@
-// GRUPO AUSTRAL — resumen del matching (solo admin): indicadores, gráficos, alertas pendientes y métricas de seguimiento.
+// GRUPO AUSTRAL — resumen del matching (solo admin): indicadores, alertas pendientes, una tarjeta por proyecto con sus
+// integrantes, gráficos y métricas de seguimiento.
 import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { Badge } from "@/components/ui/badge";
 import { Barras } from "../_components/barras";
 import { Encabezado } from "../_components/encabezado";
-import { cargarMatching } from "../_datos";
+import { cargarMatching, estadosBusqueda } from "../_datos";
 import { calcularMetricas } from "../_metricas";
 
 const porcentaje = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%`);
@@ -71,6 +73,39 @@ export default async function Resumen({ searchParams }: PageProps<"/austral/matc
           </ul>
         </section>
       )}
+
+      <section className="mt-8">
+        <h2 className="mb-3 font-serif text-xl">Proyectos y sus integrantes</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {datos.todosLosProyectos.map((p) => {
+            const propuestos = datos.decisiones.filter((d) => d.estado === "aceptada" && d.proyecto_id === p.id);
+            return (
+              <Link key={p.id} href={`/austral/matching/proyectos/${p.id}`} className="flex flex-col border p-4 hover:bg-card">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-serif text-lg">{p.nombre}</h3>
+                  {p.necesidad && (
+                    <Badge variant={p.necesidad.estado === "buscando" ? "default" : "outline"}>{estadosBusqueda[p.necesidad.estado]}</Badge>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-[#666]">
+                  {p.proyecto.integrantes.length}
+                  {p.necesidad ? ` de ${p.necesidad.integrantes_necesarios} integrantes` : ` integrante${p.proyecto.integrantes.length === 1 ? "" : "s"} · sin necesidades cargadas`}
+                  {p.necesidad && p.proyecto.vacantes > 0 ? ` · ${p.proyecto.vacantes} lugar${p.proyecto.vacantes === 1 ? "" : "es"} libre${p.proyecto.vacantes === 1 ? "" : "s"}` : ""}
+                </p>
+                <ul className="mt-3 space-y-1 text-sm">
+                  {p.proyecto.integrantes.map((i, k) => (
+                    <li key={k}>{i.nombre}{i.carrera && <span className="text-[#666]"> · {i.carrera}</span>}</li>
+                  ))}
+                  {propuestos.map((d) => (
+                    <li key={d.id} className="text-[#666]">{datos.nombreAlumno(d.persona_id)} · propuesto, falta confirmar</li>
+                  ))}
+                  {p.proyecto.integrantes.length === 0 && !propuestos.length && <li className="text-[#666]">Todavía no tiene integrantes.</li>}
+                </ul>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <Grafico titulo="Alumnos sin grupo por carrera"><Barras filas={g.carreras} unidad="alumnos" vacio="No hay alumnos sin grupo." /></Grafico>
