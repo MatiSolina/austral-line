@@ -123,6 +123,7 @@ export async function cargarMatching(supabase: Supabase) {
     resultados,
     plan,
     decisiones,
+    nombreAlumno: (personaId: string) => nombreDe.get(personaId) ?? "Alumno",
     decisionDe: (personaId: string, proyectoId: string) => decisiones.find((d) => d.persona_id === personaId && d.proyecto_id === proyectoId),
     alertas: alertas(libres, buscando, candidatos, config.puntaje_minimo),
   };

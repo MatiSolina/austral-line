@@ -9,7 +9,7 @@ import { BotonEnviar } from "../../../../_components/boton-enviar";
 import { campoClase, Encabezado } from "../../../_components/encabezado";
 import { cargarMatching, claseEstado, hayIA } from "../../../_datos";
 import { categorias, criterios, cubiertas, franjas, modalidades, niveles, type Pesos } from "../../../_motor";
-import { confirmar, decidir, redactarConIA } from "../../../acciones";
+import { confirmar, decidir, guardarSatisfaccion, redactarConIA } from "../../../acciones";
 
 export default async function Recomendacion({ params, searchParams }: PageProps<"/austral/matching/recomendacion/[personaId]/[proyectoId]">) {
   await requireRol(); // solo admin
@@ -21,15 +21,46 @@ export default async function Recomendacion({ params, searchParams }: PageProps<
   const alumno = r?.alumno ?? datos.sinGrupo.find((a) => a.id === personaId);
   const proyecto = datos.todosLosProyectos.find((p) => p.id === proyectoId);
   if (proyecto && !alumno && decision?.estado === "confirmada") {
+    const { data: s, error: e } = await (await createClient())
+      .from("austral_matching_satisfaccion").select("alumno, equipo, comentario").eq("recomendacion_id", decision.id).maybeSingle();
+    if (e) throw e;
+    const volverConfirmada = `/austral/matching/recomendacion/${personaId}/${proyectoId}`;
     return (
       <div className="mx-auto max-w-5xl">
-        <Encabezado titulo={proyecto.nombre} actual="/austral/matching" ok={ok} error={error} />
+        <Encabezado titulo={`${datos.nombreAlumno(personaId)} → ${proyecto.nombre}`} actual="/austral/matching" ok={ok} error={error} />
         <p className="mt-6 border p-4 text-sm">
-          Esta asignación ya está confirmada: el alumno es integrante de {proyecto.nombre}
+          Asignación confirmada{decision.confirmado_at ? ` el ${new Date(decision.confirmado_at).toLocaleDateString("es-AR")}` : ""}: ya es integrante de {proyecto.nombre}
           {decision.puntaje !== null ? ` (compatibilidad al decidir: ${decision.puntaje}%)` : ""}.
           {decision.observaciones ? ` Observaciones: ${decision.observaciones}` : ""}
         </p>
         {decision.justificacion && <p className="mt-4 text-sm leading-relaxed text-[#666]">{decision.justificacion}</p>}
+
+        <section className="mt-10 border-t pt-6">
+          <h2 className="font-serif text-xl">Satisfacción</h2>
+          <p className="mt-1 text-sm text-[#666]">Después de unas semanas, preguntales al alumno y al equipo cómo les fue (1 = mal, 5 = muy bien).</p>
+          <form action={guardarSatisfaccion} className="mt-4 space-y-4">
+            <input type="hidden" name="recomendacion_id" value={decision.id} />
+            <input type="hidden" name="volver" value={volverConfirmada} />
+            {([["alumno", "El alumno"], ["equipo", "El equipo"]] as const).map(([campo, texto]) => (
+              <fieldset key={campo} className="flex flex-wrap items-center gap-4 text-sm">
+                <legend className="mb-2 w-full">{texto}</legend>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <label key={n} className="flex items-center gap-1">
+                    <input type="radio" name={campo} value={n} defaultChecked={s?.[campo] === n} /> {n}
+                  </label>
+                ))}
+                <label className="flex items-center gap-1 text-[#666]">
+                  <input type="radio" name={campo} value="" defaultChecked={s?.[campo] == null} /> Sin dato
+                </label>
+              </fieldset>
+            ))}
+            <div>
+              <Label htmlFor="comentario">Comentario</Label>
+              <textarea id="comentario" name="comentario" rows={2} defaultValue={s?.comentario ?? ""} className={campoClase} />
+            </div>
+            <BotonEnviar variant="outline" enviando="Guardando…">{s ? "Actualizar satisfacción" : "Registrar satisfacción"}</BotonEnviar>
+          </form>
+        </section>
       </div>
     );
   }

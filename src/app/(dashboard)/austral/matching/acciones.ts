@@ -7,6 +7,7 @@ import { generateText } from "ai";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { cargarMatching, hayIA } from "./_datos";
+import { alumnosConEmail, validar } from "./_csv";
 import { criterios, franjas, modalidades } from "./_motor";
 
 function volver(formData: FormData, tipo: "ok" | "error", mensaje: string): never {
@@ -164,6 +165,90 @@ export async function confirmar(formData: FormData) {
   // Ya no es un alumno sin grupo, así que su página de recomendación no tiene sentido: vuelve al panel.
   formData.set("volver", "/austral/matching");
   volver(formData, "ok", "Asignación confirmada: el alumno ya es parte del equipo.");
+}
+
+// Importa perfiles desde el texto del CSV. Vuelve a validar todo acá; las filas con errores no se cargan.
+export async function importarPerfiles(texto: string): Promise<{ ok: boolean; mensaje: string }> {
+  await requireRol();
+  if (texto.length > 500_000) return { ok: false, mensaje: "El archivo es demasiado grande (máximo 500 KB)." };
+  const supabase = await createClient();
+  const [catalogo, alumnos] = await Promise.all([
+    supabase.from("austral_habilidades").select("id, nombre"),
+    supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "alumno"),
+  ]);
+  if (catalogo.error) throw catalogo.error;
+  if (alumnos.error) throw alumnos.error;
+  const { filas, errorGeneral } = validar(texto, catalogo.data, alumnosConEmail(alumnos.data));
+  if (!filas.length) return { ok: false, mensaje: errorGeneral ?? "No hay filas para importar." };
+
+  const validas = filas.filter((f) => !f.errores.length && f.personaId);
+  const ahora = new Date().toISOString();
+  // Un upsert por fila (cada una trae columnas distintas y una celda vacía no tiene que pisar nada), en paralelo.
+  const perfiles = await Promise.all(
+    validas.map((f) => supabase.from("austral_perfiles_matching").upsert({ persona_id: f.personaId!, ...f.cambios, updated_at: ahora })),
+  );
+  const fallidas = new Set(validas.filter((_, k) => perfiles[k].error).map((f) => f.linea));
+
+  // Habilidades: primero se cargan las nuevas (un solo upsert para todas las filas) y recién después se borran las que
+  // ya no van. Si algo falla a mitad de camino, el alumno queda con más habilidades, nunca sin ninguna.
+  const conHabilidades = validas.filter((f) => f.habilidades && !fallidas.has(f.linea));
+  const nuevas = conHabilidades.flatMap((f) => f.habilidades!.map((h) => ({ persona_id: f.personaId!, habilidad_id: h.id, nivel: h.nivel })));
+  const alta = nuevas.length ? await supabase.from("austral_perfil_habilidades").upsert(nuevas, { onConflict: "persona_id,habilidad_id" }) : { error: null };
+  if (alta.error) conHabilidades.forEach((f) => fallidas.add(f.linea));
+  else {
+    const bajas = await Promise.all(
+      conHabilidades.map((f) => {
+        const quedan = f.habilidades!.map((h) => h.id);
+        const consulta = supabase.from("austral_perfil_habilidades").delete().eq("persona_id", f.personaId!);
+        return quedan.length ? consulta.not("habilidad_id", "in", `(${quedan.join(",")})`) : consulta;
+      }),
+    );
+    conHabilidades.filter((_, k) => bajas[k].error).forEach((f) => fallidas.add(f.linea));
+  }
+
+  revalidatePath("/austral", "layout");
+  const importadas = validas.length - fallidas.size;
+  const salteadas = filas.length - validas.length;
+  const partes = [
+    importadas === 1 ? "Se importó 1 perfil" : `Se importaron ${importadas} perfiles`,
+    salteadas ? (salteadas === 1 ? "1 fila con errores no se cargó" : `${salteadas} filas con errores no se cargaron`) : "",
+    fallidas.size ? `no se pudieron guardar las filas ${[...fallidas].sort((a, b) => a - b).join(", ")} (probá importarlas de nuevo)` : "",
+  ].filter(Boolean);
+  return { ok: importadas > 0 && !fallidas.size, mensaje: `${partes.join("; ")}.` };
+}
+
+// Satisfacción con una asignación confirmada (1 a 5 del alumno y del equipo), para las métricas de seguimiento.
+export async function guardarSatisfaccion(formData: FormData) {
+  const persona = await requireRol();
+  const supabase = await createClient();
+  const puntaje = (campo: string) => {
+    const n = Number(formData.get(campo));
+    return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+  };
+  const alumno = puntaje("alumno");
+  const equipo = puntaje("equipo");
+
+  const recomendacionId = String(formData.get("recomendacion_id"));
+  const { data: rec } = await supabase.from("austral_recomendaciones").select("estado").eq("id", recomendacionId).maybeSingle();
+  if (rec?.estado !== "confirmada") volver(formData, "error", "Solo se registra la satisfacción de asignaciones confirmadas.");
+
+  // Las dos en "Sin dato": si había algo cargado (por ejemplo, por error), se borra; si no, no hay nada que guardar.
+  if (alumno === null && equipo === null) {
+    const { data: borrada, error } = await supabase.from("austral_matching_satisfaccion").delete().eq("recomendacion_id", recomendacionId).select("recomendacion_id");
+    if (error) throw error;
+    if (borrada.length) volver(formData, "ok", "Satisfacción borrada.");
+    volver(formData, "error", "Elegí al menos una calificación (del alumno o del equipo).");
+  }
+  const { error } = await supabase.from("austral_matching_satisfaccion").upsert({
+    recomendacion_id: recomendacionId,
+    alumno,
+    equipo,
+    comentario: texto(formData, "comentario"),
+    registrado_por: persona.id,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw error;
+  volver(formData, "ok", "Satisfacción registrada.");
 }
 
 // Opcional: una justificación más redactada. Usa solo los datos calculados por el motor; no cambia el puntaje.
