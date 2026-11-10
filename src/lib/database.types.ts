@@ -1077,6 +1077,44 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_datos_contacto": {
+                  Row: {
+                    "cargado_por": string | null,"especialidad": string | null,"persona_id": string,"telefono": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cargado_por"?: string | null,"especialidad"?: string | null,"persona_id": string,"telefono"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "cargado_por"?: string | null,"especialidad"?: string | null,"persona_id"?: string,"telefono"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_datos_contacto_cargado_por_fkey"
+      columns: ["cargado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_datos_contacto_cargado_por_fkey"
+      columns: ["cargado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_datos_contacto_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_datos_contacto_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_documentos": {
                   Row: {
                     "bytes": number,"created_at": string,"id": string,"nombre": string,"proyecto_id": string,"ruta": string,"subido_por": string | null,"tipo": string
