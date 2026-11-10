@@ -1125,14 +1125,14 @@ isOneToOne: false
                   ]
                 },"austral_matching_config": {
                   Row: {
-                    "id": boolean,"peso_complementariedad": number,"peso_disponibilidad": number,"peso_equilibrio": number,"peso_formacion": number,"peso_habilidades": number,"peso_intereses": number,"puntaje_minimo": number,"updated_at": string
+                    "carreras_min": number,"id": boolean,"integrantes_max": number,"integrantes_min": number,"peso_complementariedad": number,"peso_disponibilidad": number,"peso_equilibrio": number,"peso_formacion": number,"peso_habilidades": number,"peso_intereses": number,"puntaje_minimo": number,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "id"?: boolean,"peso_complementariedad"?: number,"peso_disponibilidad"?: number,"peso_equilibrio"?: number,"peso_formacion"?: number,"peso_habilidades"?: number,"peso_intereses"?: number,"puntaje_minimo"?: number,"updated_at"?: string
+                    "carreras_min"?: number,"id"?: boolean,"integrantes_max"?: number,"integrantes_min"?: number,"peso_complementariedad"?: number,"peso_disponibilidad"?: number,"peso_equilibrio"?: number,"peso_formacion"?: number,"peso_habilidades"?: number,"peso_intereses"?: number,"puntaje_minimo"?: number,"updated_at"?: string
                   }
                   Update: {
-                    "id"?: boolean,"peso_complementariedad"?: number,"peso_disponibilidad"?: number,"peso_equilibrio"?: number,"peso_formacion"?: number,"peso_habilidades"?: number,"peso_intereses"?: number,"puntaje_minimo"?: number,"updated_at"?: string
+                    "carreras_min"?: number,"id"?: boolean,"integrantes_max"?: number,"integrantes_min"?: number,"peso_complementariedad"?: number,"peso_disponibilidad"?: number,"peso_equilibrio"?: number,"peso_formacion"?: number,"peso_habilidades"?: number,"peso_intereses"?: number,"puntaje_minimo"?: number,"updated_at"?: string
                   }
                   Relationships: [
                     

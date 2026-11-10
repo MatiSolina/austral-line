@@ -38,8 +38,25 @@ export type Proyecto = {
   integrantes: { nombre: string; carrera: string | null; habilidades: HabilidadConNivel[] }[];
   disponibilidad: string[];
   modalidad: string | null;
-  vacantes: number; // lugares libres (descontando propuestas aceptadas sin confirmar)
+  vacantes: number; // lugares libres (descontando propuestas aceptadas sin confirmar y respetando el máximo por grupo)
+  ocupados: number; // integrantes + propuestas aceptadas sin confirmar
+  carreras: string[]; // carreras distintas entre integrantes y propuestos
 };
+
+// Restricciones para armar los grupos (las define el admin en Ponderación).
+export type Restricciones = { integrantesMin: number; integrantesMax: number; carrerasMin: number };
+
+// Si sumar a alguien de `carrera` deja al grupo sin forma de llegar al mínimo de carreras distintas con los lugares que
+// le quedarían, devuelve el motivo. Sin carrera cargada, el alumno no suma una carrera nueva.
+export function bloqueoCarreras(carrerasYa: Iterable<string>, lugaresDespues: number, carrera: string | null, minimo: number): string | null {
+  const con = new Set(carrerasYa);
+  if (carrera) con.add(carrera);
+  if (con.size + lugaresDespues >= minimo) return null;
+  const quedan = lugaresDespues === 0 ? "sería el último lugar" : lugaresDespues === 1 ? "quedaría 1 lugar" : `quedarían ${lugaresDespues} lugares`;
+  return carrera
+    ? `El grupo necesita al menos ${minimo} carreras distintas: sumar a alguien de ${carrera} no alcanza (${quedan}). Hace falta un alumno de otra carrera.`
+    : `El grupo necesita al menos ${minimo} carreras distintas y el alumno no tiene carrera cargada (${quedan}).`;
+}
 
 export type Pesos = {
   habilidades: number;
@@ -109,12 +126,13 @@ export type Resultado = {
   aporte: string | null; // principal habilidad que aporta
   cubre: Habilidad[]; // habilidades buscadas y faltantes que cubre
   alertas: string[];
+  bloqueo: string | null; // si sumarlo rompe una restricción del grupo, el motivo (no se recomienda ni se puede ubicar)
   justificacion: string;
 };
 
 const lista = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs.at(-1)}`);
 
-export function evaluar(a: Alumno, p: Proyecto, pesos: Pesos): Resultado {
+export function evaluar(a: Alumno, p: Proyecto, pesos: Pesos, carrerasMin = 1): Resultado {
   const delAlumno = new Map(a.habilidades.map((h) => [h.id, h]));
   const falta = faltantes(p);
   const alertas: string[] = [];
@@ -196,7 +214,9 @@ export function evaluar(a: Alumno, p: Proyecto, pesos: Pesos): Resultado {
     ? cubre.sort((x, y) => delAlumno.get(y.id)!.nivel - delAlumno.get(x.id)!.nivel)[0].nombre
     : fuertes[0]?.nombre ?? null;
 
-  return { alumno: a, proyecto: p, puntaje, valores, aporte, cubre, alertas, justificacion: justificar(a, p, valores, cubre, falta, puntaje) };
+  const bloqueo = p.vacantes > 0 ? bloqueoCarreras(p.carreras, p.vacantes - 1, a.carrera, carrerasMin) : null;
+
+  return { alumno: a, proyecto: p, puntaje, valores, aporte, cubre, alertas, bloqueo, justificacion: justificar(a, p, valores, cubre, falta, puntaje) };
 }
 
 // Explicación en lenguaje natural, armada solo con lo que se calculó.
@@ -220,15 +240,21 @@ function justificar(a: Alumno, p: Proyecto, v: Resultado["valores"], cubre: Habi
   return partes.join(" ");
 }
 
-// Plan global sugerido: de mayor a menor puntaje, cada alumno a un solo proyecto y sin pasarse de las vacantes.
-export function planSugerido(resultados: Resultado[], minimo: number) {
+// Plan global sugerido: de mayor a menor puntaje, cada alumno a un solo proyecto, sin pasarse de las vacantes y sin dejar
+// a un grupo sin forma de llegar al mínimo de carreras distintas (se recalcula a medida que el plan suma alumnos).
+export function planSugerido(resultados: Resultado[], minimo: number, carrerasMin = 1) {
   const ocupados = new Set<string>();
   const lugares = new Map<string, number>();
+  const carreras = new Map<string, Set<string>>();
   const plan = new Set<string>();
   for (const r of [...resultados].sort((x, y) => y.puntaje - x.puntaje)) {
     if (r.puntaje < minimo || ocupados.has(r.alumno.id)) continue;
     const libres = lugares.get(r.proyecto.id) ?? r.proyecto.vacantes;
     if (libres <= 0) continue;
+    const suyas = carreras.get(r.proyecto.id) ?? new Set(r.proyecto.carreras);
+    if (bloqueoCarreras(suyas, libres - 1, r.alumno.carrera, carrerasMin)) continue;
+    if (r.alumno.carrera) suyas.add(r.alumno.carrera);
+    carreras.set(r.proyecto.id, suyas);
     lugares.set(r.proyecto.id, libres - 1);
     ocupados.add(r.alumno.id);
     plan.add(`${r.alumno.id}:${r.proyecto.id}`);
@@ -277,6 +303,54 @@ export function alertas(alumnos: Alumno[], proyectos: Proyecto[], resultados: Re
       salida.push({ tipo: "datos", titulo: `${a.nombre}: información insuficiente`, detalle: "Le faltan datos (habilidades, disponibilidad o intereses) para recomendarlo con confianza.", accion: "Completá su perfil de matching.", alumnoId: a.id });
     } else if (suyos[0]?.alertas.length) {
       salida.push({ tipo: "conflicto", titulo: `${a.nombre}: conflicto con su mejor opción`, detalle: `Con ${suyos[0].proyecto.nombre}: ${suyos[0].alertas.join(" ")}`, accion: "Confirmá con el alumno si puede adaptarse antes de proponerlo.", alumnoId: a.id, proyectoId: suyos[0].proyecto.id });
+    }
+  }
+  return salida;
+}
+
+// Grupos que no cumplen las restricciones: por debajo del mínimo o por encima del máximo de integrantes, o sin forma de
+// llegar al mínimo de carreras distintas. Solo mira proyectos que ya tienen al menos un integrante o propuesto.
+export function alertasGrupos(proyectos: (Proyecto & { buscaIntegrantes: boolean })[], r: Restricciones): Alerta[] {
+  const salida: Alerta[] = [];
+  for (const p of proyectos) {
+    if (p.ocupados === 0) continue;
+    if (p.ocupados < r.integrantesMin) {
+      salida.push({
+        tipo: "restriccion",
+        titulo: `${p.nombre}: por debajo del mínimo de integrantes`,
+        detalle: `Tiene ${p.ocupados} ${p.ocupados === 1 ? "integrante" : "integrantes"} y el mínimo por grupo es ${r.integrantesMin}.`,
+        accion: p.buscaIntegrantes
+          ? "Priorizá ubicar alumnos sin grupo en este proyecto."
+          : "El proyecto no está buscando integrantes: cargá o actualizá sus necesidades para que el agente le recomiende alumnos.",
+        proyectoId: p.id,
+      });
+    } else if (p.ocupados > r.integrantesMax) {
+      salida.push({
+        tipo: "restriccion",
+        titulo: `${p.nombre}: supera el máximo de integrantes`,
+        detalle: `Tiene ${p.ocupados} integrantes y el máximo por grupo es ${r.integrantesMax}.`,
+        accion: "Revisá con el equipo si conviene mover a alguien a un grupo con menos integrantes.",
+        proyectoId: p.id,
+      });
+    }
+    const faltan = r.carrerasMin - p.carreras.length;
+    const hoy = p.carreras.length ? `hoy: ${lista(p.carreras)}` : "hoy no hay carreras cargadas";
+    if (faltan > 0 && faltan > p.vacantes) {
+      salida.push({
+        tipo: "restriccion",
+        titulo: `${p.nombre}: no llega al mínimo de carreras`,
+        detalle: `El mínimo es ${r.carrerasMin} carreras distintas por grupo (${hoy})${p.vacantes ? ` y con ${p.vacantes === 1 ? "el lugar que le queda" : `los ${p.vacantes} lugares que le quedan`} no alcanza` : ""}.`,
+        accion: "Revisá la carrera cargada de cada integrante o hablá con el equipo para sumar a alguien de otra carrera.",
+        proyectoId: p.id,
+      });
+    } else if (faltan > 0 && faltan === p.vacantes) {
+      salida.push({
+        tipo: "restriccion",
+        titulo: `${p.nombre}: los lugares libres son para otras carreras`,
+        detalle: `Para llegar a ${r.carrerasMin} carreras distintas, ${p.vacantes === 1 ? "el lugar que le queda tiene" : `los ${p.vacantes} lugares que le quedan tienen`} que ser para alumnos de carreras que el grupo no tiene (${hoy}).`,
+        accion: "El agente ya solo recomienda alumnos de otras carreras para este proyecto.",
+        proyectoId: p.id,
+      });
     }
   }
   return salida;
