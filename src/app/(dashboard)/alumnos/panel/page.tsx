@@ -54,7 +54,7 @@ export default async function PanelDeProfesores({ searchParams }: PageProps<"/al
   await requireRol(); // sin roles = solo admin (profesores)
   const supabase = await createClient();
 
-  const [alumnos, perfiles, carreras, maestroCarreras, intereses, temas, integrantes, ideas, interesados, mensajes, reportes] =
+  const [alumnos, perfiles, carreras, maestroCarreras, intereses, temas, integrantes, ideas, interesados, mensajes, reportes, compatibles] =
     await Promise.all([
       supabase.from("personas_contacto").select("id, nombre, email").eq("rol", "alumno").order("nombre"),
       supabase.from("alumnos_perfiles").select("persona_id, busca_equipo"),
@@ -73,8 +73,9 @@ export default async function PanelDeProfesores({ searchParams }: PageProps<"/al
         )
         .eq("resuelto", false)
         .order("created_at"),
+      supabase.rpc("alumnos_grupos_compatibles"),
     ]);
-  for (const r of [alumnos, perfiles, carreras, maestroCarreras, intereses, temas, integrantes, ideas, interesados, mensajes, reportes]) {
+  for (const r of [alumnos, perfiles, carreras, maestroCarreras, intereses, temas, integrantes, ideas, interesados, mensajes, reportes, compatibles]) {
     if (r.error) throw r.error;
   }
 
@@ -268,6 +269,34 @@ export default async function PanelDeProfesores({ searchParams }: PageProps<"/al
             ))}
           </TableBody>
         </Table>
+      </section>
+
+      <section className="mb-10 grid gap-3">
+        <h2 className="font-serif text-lg">Grupos que podrían unirse ({compatibles.data!.length})</h2>
+        <p className="text-sm text-[#666]">
+          Pares de grupos que juntos no pasan de 6 integrantes y comparten temas o suman carreras. Es una sugerencia: cada
+          grupo también la ve en su pestaña Proyectos.
+        </p>
+        {compatibles.data!.length === 0 ? (
+          <p className="text-sm text-[#666]">Por ahora no hay grupos compatibles para unir.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow><TableHead>Grupos</TableHead><TableHead>Juntos</TableHead><TableHead>Temas en común</TableHead><TableHead>Carreras que suman</TableHead><TableHead>No coinciden en</TableHead></TableRow>
+            </TableHeader>
+            <TableBody>
+              {compatibles.data!.map((p) => (
+                <TableRow key={`${p.proyecto_a}-${p.proyecto_b}`}>
+                  <TableCell>{p.nombre_a} ({p.integrantes_a}) + {p.nombre_b} ({p.integrantes_b})</TableCell>
+                  <TableCell className="tabular-nums">{p.integrantes_a + p.integrantes_b}</TableCell>
+                  <TableCell>{(p.temas_comunes ?? []).join(", ") || "—"}</TableCell>
+                  <TableCell>{[...(p.carreras_solo_a ?? []), ...(p.carreras_solo_b ?? [])].join(", ") || "—"}</TableCell>
+                  <TableCell className="text-[#666]">{(p.choques ?? []).join(", ") || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </section>
 
       <section className="grid gap-3">

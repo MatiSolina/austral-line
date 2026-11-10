@@ -267,6 +267,156 @@ where i.titulo = 'Finanzas personales para estudiantes' and pe.email = 'carla@al
 insert into alumnos_hitos_tipo (evento_id, tipo)
 select id, 'ambas' from eventos where nombre = 'Kickoff';
 
+-- GRUPO AUSTRAL: datos de demo del matching de alumnos con proyectos.
+-- 12 alumnos sin grupo con perfiles variados, 2 proyectos nuevos y necesidades cargadas en 4 de los 5 proyectos.
+-- Casos para probar: FinEdu tiene dos programadores y uno de finanzas y le falta UX/UI (gana la diseñadora, no el
+-- programador más fuerte); Sofía y Florencia compiten para FinEdu; nadie sabe IA para MoviCampus; Julieta no tiene
+-- datos; Ignacio solo trabaja remoto y Bautista solo de noche; Tutorly queda sin necesidades cargadas.
+insert into personas (nombre, email, rol) values
+  ('Tomás Ibarra', 'tomas@alumnos.austral.edu.ar', 'alumno'),
+  ('Lucas Medina', 'lucas@alumnos.austral.edu.ar', 'alumno'),
+  ('Martina Sosa', 'martina@alumnos.austral.edu.ar', 'alumno'),
+  ('Nicolás Vera', 'nicolas@alumnos.austral.edu.ar', 'alumno'),
+  ('Paula Ríos', 'paula@alumnos.austral.edu.ar', 'alumno'),
+  ('Sofía Díaz', 'sofia@alumnos.austral.edu.ar', 'alumno'),
+  ('Joaquín Pérez', 'joaquin@alumnos.austral.edu.ar', 'alumno'),
+  ('Valentina Ruiz', 'valentina@alumnos.austral.edu.ar', 'alumno'),
+  ('Mateo Gómez', 'mateo@alumnos.austral.edu.ar', 'alumno'),
+  ('Camila Torres', 'camila@alumnos.austral.edu.ar', 'alumno'),
+  ('Lucía Fernández', 'luciaf@alumnos.austral.edu.ar', 'alumno'),
+  ('Agustín Romero', 'agustin@alumnos.austral.edu.ar', 'alumno'),
+  ('Florencia Castro', 'florencia@alumnos.austral.edu.ar', 'alumno'),
+  ('Ignacio Silva', 'ignacio@alumnos.austral.edu.ar', 'alumno'),
+  ('Julieta Morales', 'julieta@alumnos.austral.edu.ar', 'alumno'),
+  ('Bautista Herrera', 'bautista@alumnos.austral.edu.ar', 'alumno');
+
+insert into proyectos (nombre, descripcion, estado) values
+  ('FinEdu', 'Plataforma de educación financiera para jóvenes', 'publicado'),
+  ('MoviCampus', 'Movilidad compartida entre sedes de la universidad', 'publicado');
+
+insert into proyecto_integrantes
+select p.id, pe.id from proyectos p join personas pe on (p.nombre, pe.email) in (
+  ('AgroSense', 'tomas@alumnos.austral.edu.ar'),
+  ('FinEdu', 'lucas@alumnos.austral.edu.ar'), ('FinEdu', 'martina@alumnos.austral.edu.ar'), ('FinEdu', 'nicolas@alumnos.austral.edu.ar'),
+  ('MoviCampus', 'paula@alumnos.austral.edu.ar'));
+
+insert into alumnos_carreras (persona_id, carrera_id)
+select pe.id, m.id from (values
+  ('ana@alumnos.austral.edu.ar', 'Agronegocios'), ('tomas@alumnos.austral.edu.ar', 'Negocios Digitales'),
+  ('lucas@alumnos.austral.edu.ar', 'Negocios Digitales'), ('martina@alumnos.austral.edu.ar', 'Negocios Digitales'),
+  ('nicolas@alumnos.austral.edu.ar', 'Economía Empresarial'), ('paula@alumnos.austral.edu.ar', 'Administración de Empresas'),
+  ('sofia@alumnos.austral.edu.ar', 'Marketing'), ('joaquin@alumnos.austral.edu.ar', 'Negocios Digitales'),
+  ('valentina@alumnos.austral.edu.ar', 'Administración de Empresas'), ('mateo@alumnos.austral.edu.ar', 'Economía Empresarial'),
+  ('camila@alumnos.austral.edu.ar', 'Marketing'), ('luciaf@alumnos.austral.edu.ar', 'Negocios Digitales'),
+  ('agustin@alumnos.austral.edu.ar', 'Agronegocios'), ('florencia@alumnos.austral.edu.ar', 'Marketing'),
+  ('ignacio@alumnos.austral.edu.ar', 'Administración de Empresas'), ('julieta@alumnos.austral.edu.ar', 'Economía Empresarial'),
+  ('bautista@alumnos.austral.edu.ar', 'Negocios Digitales')
+) as v(email, carrera)
+join personas pe on pe.email = v.email
+join alumnos_carreras_maestro m on m.nombre = v.carrera
+on conflict (persona_id) do nothing;
+
+insert into alumnos_intereses (persona_id, interes_id, estrellas)
+select pe.id, m.id, v.estrellas from (values
+  ('sofia@alumnos.austral.edu.ar', 'Finanzas y fintech', 4), ('sofia@alumnos.austral.edu.ar', 'Educación', 5),
+  ('joaquin@alumnos.austral.edu.ar', 'Tecnología y software', 5), ('joaquin@alumnos.austral.edu.ar', 'Finanzas y fintech', 4),
+  ('joaquin@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 3),
+  ('valentina@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 5), ('valentina@alumnos.austral.edu.ar', 'Impacto social', 4),
+  ('mateo@alumnos.austral.edu.ar', 'Finanzas y fintech', 5), ('mateo@alumnos.austral.edu.ar', 'Sustentabilidad y ambiente', 3),
+  ('camila@alumnos.austral.edu.ar', 'Educación', 4), ('camila@alumnos.austral.edu.ar', 'Consumo y retail', 5),
+  ('luciaf@alumnos.austral.edu.ar', 'Agro y alimentos', 4), ('luciaf@alumnos.austral.edu.ar', 'Tecnología y software', 5),
+  ('agustin@alumnos.austral.edu.ar', 'Agro y alimentos', 5), ('agustin@alumnos.austral.edu.ar', 'Logística y movilidad', 4),
+  ('florencia@alumnos.austral.edu.ar', 'Educación', 5), ('florencia@alumnos.austral.edu.ar', 'Finanzas y fintech', 4),
+  ('ignacio@alumnos.austral.edu.ar', 'Logística y movilidad', 5), ('ignacio@alumnos.austral.edu.ar', 'Impacto social', 3),
+  ('bautista@alumnos.austral.edu.ar', 'Tecnología y software', 5), ('bautista@alumnos.austral.edu.ar', 'Logística y movilidad', 4)
+) as v(email, interes, estrellas)
+join personas pe on pe.email = v.email
+join alumnos_intereses_maestro m on m.nombre = v.interes
+on conflict do nothing;
+
+insert into alumnos_grupo_intereses (proyecto_id, interes_id, estrellas)
+select p.id, m.id, v.estrellas from (values
+  ('AgroSense', 'Agro y alimentos', 5), ('AgroSense', 'Sustentabilidad y ambiente', 4),
+  ('Reciclá', 'Sustentabilidad y ambiente', 5), ('Reciclá', 'Impacto social', 4),
+  ('FinEdu', 'Finanzas y fintech', 5), ('FinEdu', 'Educación', 5),
+  ('MoviCampus', 'Logística y movilidad', 5), ('MoviCampus', 'Tecnología y software', 4)
+) as v(proyecto, interes, estrellas)
+join proyectos p on p.nombre = v.proyecto
+join alumnos_intereses_maestro m on m.nombre = v.interes
+on conflict do nothing;
+
+insert into austral_perfiles_matching (persona_id, anio, area, experiencia, disponibilidad, modalidad, preferencias)
+select pe.id, v.anio, v.area, v.experiencia, v.disponibilidad, v.modalidad, v.preferencias from (values
+  ('ana@alumnos.austral.edu.ar', 3, 'Agronegocios', null, array['tarde'], 'mixta', null),
+  ('tomas@alumnos.austral.edu.ar', 4, 'Desarrollo de software', 'Pasantía en una agtech', array['tarde', 'noche'], 'mixta', null),
+  ('lucas@alumnos.austral.edu.ar', 3, 'Frontend', null, array['tarde', 'noche'], 'mixta', null),
+  ('martina@alumnos.austral.edu.ar', 3, 'Backend', null, array['tarde'], 'mixta', null),
+  ('nicolas@alumnos.austral.edu.ar', 4, 'Finanzas', null, array['noche'], 'mixta', null),
+  ('paula@alumnos.austral.edu.ar', 2, 'Operaciones', null, array['tarde'], 'presencial', null),
+  ('diego@alumnos.austral.edu.ar', 3, 'Cadena de suministro agro', 'Trabajó en la logística de un acopio de granos', array['manana', 'tarde'], 'presencial', 'Proyectos de agro o alimentos'),
+  ('sofia@alumnos.austral.edu.ar', 2, 'Diseño de producto digital', 'Rediseñó la web de un emprendimiento familiar', array['tarde', 'noche'], 'mixta', 'Educación o finanzas personales'),
+  ('joaquin@alumnos.austral.edu.ar', 4, 'Desarrollo full stack', 'Hizo dos apps en hackatones', array['tarde', 'noche'], 'remota', 'Proyectos de tecnología'),
+  ('valentina@alumnos.austral.edu.ar', 3, 'Gestión de proyectos', 'Coordinó un voluntariado de 30 personas', array['manana', 'tarde'], 'presencial', 'Impacto social o ambiente'),
+  ('mateo@alumnos.austral.edu.ar', 4, 'Finanzas corporativas', null, array['manana', 'tarde'], 'mixta', null),
+  ('camila@alumnos.austral.edu.ar', 3, 'Marketing digital', 'Maneja las redes de una marca de ropa', array['tarde', 'noche'], 'mixta', 'Consumo o educación'),
+  ('luciaf@alumnos.austral.edu.ar', 4, 'Ciencia de datos', 'Ayudante de la materia Estadística', array['tarde'], 'mixta', null),
+  ('agustin@alumnos.austral.edu.ar', 2, 'Agronegocios', null, array['tarde'], 'presencial', 'Agro'),
+  ('florencia@alumnos.austral.edu.ar', 2, 'Diseño UX', 'Curso de UX online', array['tarde', 'noche'], 'mixta', 'Educación'),
+  ('ignacio@alumnos.austral.edu.ar', 3, 'Estrategia', null, array['tarde'], 'remota', 'Movilidad'),
+  ('julieta@alumnos.austral.edu.ar', null, null, null, '{}'::text[], null, null),
+  ('bautista@alumnos.austral.edu.ar', 2, 'Frontend', null, array['noche'], 'remota', null)
+) as v(email, anio, area, experiencia, disponibilidad, modalidad, preferencias)
+join personas pe on pe.email = v.email;
+
+insert into austral_perfil_habilidades (persona_id, habilidad_id, nivel)
+select pe.id, h.id, v.nivel from (values
+  ('ana@alumnos.austral.edu.ar', 'Investigación de mercado', 2), ('ana@alumnos.austral.edu.ar', 'Estrategia', 3),
+  ('tomas@alumnos.austral.edu.ar', 'Backend', 3), ('tomas@alumnos.austral.edu.ar', 'Desarrollo web', 2),
+  ('lucas@alumnos.austral.edu.ar', 'Frontend', 3), ('lucas@alumnos.austral.edu.ar', 'Desarrollo web', 3),
+  ('martina@alumnos.austral.edu.ar', 'Backend', 3), ('martina@alumnos.austral.edu.ar', 'Bases de datos', 2),
+  ('nicolas@alumnos.austral.edu.ar', 'Finanzas', 3), ('nicolas@alumnos.austral.edu.ar', 'Estrategia', 2),
+  ('paula@alumnos.austral.edu.ar', 'Logística', 3), ('paula@alumnos.austral.edu.ar', 'Procesos', 2),
+  ('carla@alumnos.austral.edu.ar', 'Marketing', 3), ('carla@alumnos.austral.edu.ar', 'Comunicación visual', 2),
+  ('diego@alumnos.austral.edu.ar', 'Logística', 3), ('diego@alumnos.austral.edu.ar', 'Planificación', 2),
+  ('diego@alumnos.austral.edu.ar', 'Organización', 2),
+  ('sofia@alumnos.austral.edu.ar', 'UX/UI', 2), ('sofia@alumnos.austral.edu.ar', 'Prototipado', 2),
+  ('sofia@alumnos.austral.edu.ar', 'Investigación de usuarios', 1),
+  ('joaquin@alumnos.austral.edu.ar', 'Desarrollo web', 3), ('joaquin@alumnos.austral.edu.ar', 'Frontend', 3),
+  ('joaquin@alumnos.austral.edu.ar', 'Backend', 2),
+  ('valentina@alumnos.austral.edu.ar', 'Gestión de proyectos', 3), ('valentina@alumnos.austral.edu.ar', 'Planificación', 3),
+  ('valentina@alumnos.austral.edu.ar', 'Metodologías ágiles', 2),
+  ('mateo@alumnos.austral.edu.ar', 'Finanzas', 3), ('mateo@alumnos.austral.edu.ar', 'Análisis comercial', 2),
+  ('camila@alumnos.austral.edu.ar', 'Marketing', 3), ('camila@alumnos.austral.edu.ar', 'Comunicación visual', 2),
+  ('camila@alumnos.austral.edu.ar', 'Diseño gráfico', 2),
+  ('luciaf@alumnos.austral.edu.ar', 'Análisis de datos', 3), ('luciaf@alumnos.austral.edu.ar', 'Bases de datos', 2),
+  ('agustin@alumnos.austral.edu.ar', 'Logística', 2), ('agustin@alumnos.austral.edu.ar', 'Investigación de mercado', 2),
+  ('agustin@alumnos.austral.edu.ar', 'Procesos', 1),
+  ('florencia@alumnos.austral.edu.ar', 'UX/UI', 2), ('florencia@alumnos.austral.edu.ar', 'Investigación de usuarios', 2),
+  ('ignacio@alumnos.austral.edu.ar', 'Estrategia', 2), ('ignacio@alumnos.austral.edu.ar', 'Desarrollo de negocios', 2),
+  ('bautista@alumnos.austral.edu.ar', 'Frontend', 2), ('bautista@alumnos.austral.edu.ar', 'Automatización', 1)
+) as v(email, habilidad, nivel)
+join personas pe on pe.email = v.email
+join austral_habilidades h on h.nombre = v.habilidad;
+
+insert into austral_proyecto_necesidades (proyecto_id, integrantes_necesarios, objetivo, problematica, disponibilidad, modalidad, estado)
+select p.id, v.necesarios, v.objetivo, v.problematica, v.disponibilidad, v.modalidad, 'buscando' from (values
+  ('AgroSense', 4, 'Ayudar a productores hortícolas a regar mejor', 'Riego sin medir la humedad del suelo', array['tarde'], 'mixta'),
+  ('Reciclá', 3, 'Aumentar la separación de residuos en los barrios', 'Baja separación en origen', array['manana', 'tarde'], 'presencial'),
+  ('FinEdu', 5, 'Enseñar finanzas personales a jóvenes', 'Poca educación financiera en estudiantes', array['tarde', 'noche'], 'mixta'),
+  ('MoviCampus', 3, 'Compartir viajes entre sedes', 'Traslados caros y lentos entre sedes', array['tarde'], 'presencial')
+) as v(proyecto, necesarios, objetivo, problematica, disponibilidad, modalidad)
+join proyectos p on p.nombre = v.proyecto;
+
+insert into austral_proyecto_habilidades (proyecto_id, habilidad_id)
+select p.id, h.id from (values
+  ('AgroSense', 'UX/UI'), ('AgroSense', 'Análisis de datos'), ('AgroSense', 'Logística'), ('AgroSense', 'Backend'),
+  ('Reciclá', 'Desarrollo web'), ('Reciclá', 'Gestión de proyectos'), ('Reciclá', 'Finanzas'), ('Reciclá', 'Marketing'),
+  ('FinEdu', 'UX/UI'), ('FinEdu', 'Investigación de usuarios'), ('FinEdu', 'Desarrollo web'), ('FinEdu', 'Marketing'), ('FinEdu', 'Finanzas'),
+  ('MoviCampus', 'Inteligencia artificial'), ('MoviCampus', 'Automatización'), ('MoviCampus', 'Desarrollo de negocios')
+) as v(proyecto, habilidad)
+join proyectos p on p.nombre = v.proyecto
+join austral_habilidades h on h.nombre = v.habilidad;
+
 -- GRUPO MENTORES: una reunión de Pablo, que tiene perfil publicado, para ver el resumen con perfil (Marta no tiene).
 insert into mentores_reuniones (proyecto_id, mentor_id, inicio, lugar)
 select p.id, m.id, now() + interval '4 days', 'Sala 3'
