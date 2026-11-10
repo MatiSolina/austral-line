@@ -59,9 +59,11 @@ export default async function Jurado({ searchParams }: PageProps<"/jurado">) {
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-end gap-6">
+          <Link href={conEvento("/jurado/resumen-pitch", evento?.id)} className={linkClase}>Resumen del pitch</Link>
           <Link href={conEvento("/jurado/deliberacion", evento?.id)} className={linkClase}>Tablero de deliberación</Link>
           {!esJurado && <Link href={conEvento("/jurado/salones", evento?.id)} className={linkClase}>Salones</Link>}
           {!esJurado && <Link href="/jurado/criterios" className={linkClase}>Criterios</Link>}
+          {!esJurado && <Link href={conEvento("/jurado/resumenes", evento?.id)} className={linkClase}>Resúmenes del pitch</Link>}
           {!esJurado && <Link href={conEvento("/jurado/devoluciones", evento?.id)} className={linkClase}>Devoluciones</Link>}
           {!esJurado && <Link href="/jurado/comunicaciones" className={linkClase}>Mails a jurados</Link>}
           {esJurado && salon && (
