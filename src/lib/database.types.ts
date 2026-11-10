@@ -23,7 +23,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "alumnos_carreras": {
+            "alumnos_armado_config": {
+                  Row: {
+                    "cierre": string | null,"id": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cierre"?: string | null,"id"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "cierre"?: string | null,"id"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"alumnos_carreras": {
                   Row: {
                     "carrera_id": number,"created_at": string,"persona_id": string
                   }
@@ -617,6 +631,138 @@ isOneToOne: true
       foreignKeyName: "alumnos_perfiles_persona_id_fkey"
       columns: ["persona_id"]
 isOneToOne: true
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_propuesta_miembros": {
+                  Row: {
+                    "created_at": string,"estado": string,"invitado_por": string | null,"persona_id": string,"propuesta_id": string,"respondido_at": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"estado": string,"invitado_por"?: string | null,"persona_id": string,"propuesta_id": string,"respondido_at"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"estado"?: string,"invitado_por"?: string | null,"persona_id"?: string,"propuesta_id"?: string,"respondido_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_propuesta_miembros_invitado_por_fkey"
+      columns: ["invitado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuesta_miembros_invitado_por_fkey"
+      columns: ["invitado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuesta_miembros_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuesta_miembros_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuesta_miembros_propuesta_id_fkey"
+      columns: ["propuesta_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_propuestas"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_propuestas": {
+                  Row: {
+                    "comentario_profesores": string | null,"creada_por": string | null,"created_at": string,"estado": string,"id": string,"idea_id": string | null,"nombre": string,"proyecto_id": string | null,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "comentario_profesores"?: string | null,"creada_por"?: string | null,"created_at"?: string,"estado"?: string,"id"?: string,"idea_id"?: string | null,"nombre": string,"proyecto_id"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "comentario_profesores"?: string | null,"creada_por"?: string | null,"created_at"?: string,"estado"?: string,"id"?: string,"idea_id"?: string | null,"nombre"?: string,"proyecto_id"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_propuestas_creada_por_fkey"
+      columns: ["creada_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuestas_creada_por_fkey"
+      columns: ["creada_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuestas_idea_id_fkey"
+      columns: ["idea_id"]
+isOneToOne: false
+      referencedRelation: "alumnos_ideas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_propuestas_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"alumnos_solicitudes_cambio": {
+                  Row: {
+                    "created_at": string,"estado": string,"id": string,"motivo": string,"persona_id": string,"proyecto_destino": string | null,"proyecto_origen": string,"respuesta": string | null,"resuelta_at": string | null,"resuelta_por": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"estado"?: string,"id"?: string,"motivo": string,"persona_id": string,"proyecto_destino"?: string | null,"proyecto_origen": string,"respuesta"?: string | null,"resuelta_at"?: string | null,"resuelta_por"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"estado"?: string,"id"?: string,"motivo"?: string,"persona_id"?: string,"proyecto_destino"?: string | null,"proyecto_origen"?: string,"respuesta"?: string | null,"resuelta_at"?: string | null,"resuelta_por"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "alumnos_solicitudes_cambio_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_solicitudes_cambio_persona_id_fkey"
+      columns: ["persona_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_solicitudes_cambio_proyecto_destino_fkey"
+      columns: ["proyecto_destino"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_solicitudes_cambio_proyecto_origen_fkey"
+      columns: ["proyecto_origen"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_solicitudes_cambio_resuelta_por_fkey"
+      columns: ["resuelta_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "alumnos_solicitudes_cambio_resuelta_por_fkey"
+      columns: ["resuelta_por"]
+isOneToOne: false
       referencedRelation: "personas_contacto"
       referencedColumns: ["id"]
     }
@@ -1965,20 +2111,46 @@ isOneToOne: false
 "alumnos_analisis_limite":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"alumnos_aprobar_propuesta":
+{ Args: { "p_propuesta": string }; Returns: string
+                           },
+"alumnos_armado_abierto":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "alumnos_calcular_intereses_grupo":
 { Args: { "p_proyecto": string }; Returns: number
+                           },
+"alumnos_cancelar_solicitud":
+{ Args: { "p_solicitud": string }; Returns: undefined
+                           },
+"alumnos_candidatos":
+{ Args: { "p_propuesta": string }; Returns: {
+              "busca_equipo": boolean,"carrera": string,"email": string,"nombre": string,"persona_id": string
+            }[]
                            },
 "alumnos_cierre_hito":
 { Args: { "p_evento": string }; Returns: string
                            },
+"alumnos_companeros_de_propuesta":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
 "alumnos_completar_analisis":
 { Args: { "p_analisis": string,"p_modelo"?: string,"p_resultado"?: Json }; Returns: undefined
+                           },
+"alumnos_crear_propuesta":
+{ Args: { "p_idea"?: string,"p_nombre": string }; Returns: string
+                           },
+"alumnos_devolver_propuesta":
+{ Args: { "p_comentario": string,"p_propuesta": string }; Returns: undefined
                            },
 "alumnos_editar_nota_entrega":
 { Args: { "p_entrega": string,"p_nota": string }; Returns: undefined
                            },
 "alumnos_entrega_editable":
 { Args: { "p_entrega": string }; Returns: boolean
+                           },
+"alumnos_enviar_propuesta":
+{ Args: { "p_propuesta": string }; Returns: undefined
                            },
 "alumnos_es_mi_proyecto":
 { Args: { "p_proyecto": string }; Returns: boolean
@@ -1991,8 +2163,34 @@ isOneToOne: false
 "alumnos_guardar_perfil":
 { Args: { "p_busca_equipo": boolean,"p_carrera_id": number,"p_intereses": Json,"p_sobre_mi": string }; Returns: undefined
                            },
+"alumnos_idea_libre":
+{ Args: { "p_idea": string,"p_salvo"?: string }; Returns: boolean
+                           },
+"alumnos_ideas_libres":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "id": string,"titulo": string
+            }[]
+                           },
+"alumnos_invitar":
+{ Args: { "p_persona": string,"p_propuesta": string }; Returns: undefined
+                           },
+"alumnos_mis_propuestas":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
+"alumnos_ocupado":
+{ Args: { "p_persona": string }; Returns: boolean
+                           },
 "alumnos_reservar_analisis":
 { Args: { "p_proyecto": string }; Returns: string
+                           },
+"alumnos_resolver_solicitud":
+{ Args: { "p_aprobar": boolean,"p_respuesta": string,"p_solicitud": string }; Returns: undefined
+                           },
+"alumnos_responder_invitacion":
+{ Args: { "p_acepta": boolean,"p_propuesta": string }; Returns: undefined
+                           },
+"alumnos_salir_propuesta":
+{ Args: { "p_propuesta": string }; Returns: undefined
                            },
 "alumnos_soy_integrante":
 { Args: { "p_proyecto": string }; Returns: boolean
