@@ -31,15 +31,16 @@ export default async function ContactoMentores() {
     );
   }
 
-  const [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult] = await Promise.all([
+  const [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult, integrantesResult] = await Promise.all([
     supabase.from("personas").select("id, nombre, rol").order("nombre"),
     supabase.from("austral_contactos_mentores").select("mentor_id, industria, especialidades, modalidad, email_contacto, telefono_contacto, acepta_consultas_otros, publicado, actualizado_at").order("actualizado_at", { ascending: false }),
     supabase.from("austral_vinculos_mentor_proyecto").select("mentor_id, proyecto_id"),
     supabase.from("proyectos").select("id, nombre").order("nombre"),
     supabase.from("austral_solicitudes_contacto").select("id, alumno_id, mentor_id, motivo, estado, created_at").order("created_at", { ascending: false }).limit(100),
     supabase.from("austral_titulares_proyecto").select("proyecto_id, mentor_id"),
+    supabase.from("proyecto_integrantes").select("persona_id, proyecto_id"),
   ]);
-  for (const resultado of [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult]) {
+  for (const resultado of [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult, integrantesResult]) {
     if (resultado.error) throw resultado.error;
   }
   const personas = personasResult.data ?? [];
@@ -51,6 +52,9 @@ export default async function ContactoMentores() {
   const titulares = new Map((titularesResult.data ?? []).map((titular) => [titular.proyecto_id, titular.mentor_id]));
   const nombres = new Map(personas.map((p) => [p.id, p.nombre]));
   const proyectosPorId = new Map(proyectos.map((proyecto) => [proyecto.id, proyecto.nombre]));
+  // Proyecto(s) de cada alumno, para que el admin sepa de qué equipo viene cada solicitud.
+  const proyectosDeAlumno = (alumnoId: string) =>
+    (integrantesResult.data ?? []).filter((i) => i.persona_id === alumnoId).map((i) => proyectosPorId.get(i.proyecto_id)).filter(Boolean).join(", ");
 
   if (persona.rol === "alumno") {
     const disponibles = contactos.filter((contacto) => contacto.publicado);
@@ -142,9 +146,10 @@ export default async function ContactoMentores() {
       <section className="space-y-4">
         <h2 className="font-serif text-xl">Solicitudes de alumnos</h2>
         {solicitudes.length ? <div className="overflow-x-auto"><Table>
-          <TableHeader><TableRow><TableHead>Alumno</TableHead><TableHead>Mentor</TableHead><TableHead>Motivo</TableHead><TableHead>Estado</TableHead><TableHead className="w-12"> </TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Alumno</TableHead><TableHead>Proyecto</TableHead><TableHead>Mentor</TableHead><TableHead>Motivo</TableHead><TableHead>Estado</TableHead><TableHead className="w-12"> </TableHead></TableRow></TableHeader>
           <TableBody>{solicitudes.map((solicitud) => <TableRow key={solicitud.id}>
             <TableCell>{nombres.get(solicitud.alumno_id)}</TableCell>
+            <TableCell>{proyectosDeAlumno(solicitud.alumno_id) || <span className="text-[#666]">Sin proyecto</span>}</TableCell>
             <TableCell>{nombres.get(solicitud.mentor_id)}</TableCell>
             <TableCell className="min-w-64 whitespace-normal">{solicitud.motivo}</TableCell>
             <TableCell>{solicitud.estado === "pendiente" ? "Pendiente" : "Atendida"}</TableCell>
