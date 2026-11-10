@@ -77,7 +77,7 @@ export function SubirAudio() {
     <button type="button" className="border px-4 py-2 text-sm disabled:opacity-50" disabled={subiendo} onClick={() => input.current?.click()}>
       {subiendo ? "Subiendo audio…" : "Elegir audio"}
     </button>
-    <p className="text-xs text-[#666]">MP3, M4A, WAV o WebM; hasta 10 MB. Si el formato no es compatible, te avisamos antes de subirlo.</p>
+    <p className="text-xs text-[#666]">Podés grabarlo con el celular. MP3, M4A, WAV o WebM; hasta 10 MB. Verificamos el formato antes de registrar el audio para revisión.</p>
     {mensaje && <p role="status" className={`text-sm ${mensaje.ok ? "text-[#666]" : "text-destructive"}`}>{mensaje.mensaje}</p>}
   </div>;
 }
@@ -85,6 +85,6 @@ export function SubirAudio() {
 export function ReproducirAudio({ mentorId, url }: { mentorId: string; url: string }) {
   const registrado = useRef(false);
   return <audio controls preload="none" src={url} className="max-w-full" onPlay={() => {
-    if (!registrado.current) { registrado.current = true; void registrarEscucha(mentorId); }
+    if (!registrado.current) { registrado.current = true; registrarEscucha(mentorId).catch(() => {}); }
   }}>Tu navegador no puede reproducir este audio.</audio>;
 }

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { validarCabeceraAudio } from "./_audio";
 
 export type Resultado = { ok: boolean; mensaje: string };
 const RUTA = "/austral/perfiles-mentores";
@@ -63,13 +64,19 @@ export async function registrarAudio(ruta: string, mime: string): Promise<Result
   const mentor = await requireRol("mentor");
   if (mentor.rol !== "mentor") return { ok: false, mensaje: "Solo el mentor puede registrar su audio." };
   const extension = ruta.split(".").pop()?.toLowerCase() ?? "";
-  if (!ruta.startsWith(`${mentor.id}/`) || !TIPOS[extension] || TIPOS[extension] !== mime) {
+  if (!ruta.startsWith(`${mentor.id}/`) || ruta.split("/").length !== 2 || !TIPOS[extension] || TIPOS[extension] !== mime) {
     return { ok: false, mensaje: "Archivo inválido." };
   }
   const supabase = await createClient();
   const archivo = ruta.slice(mentor.id.length + 1);
   const { data: archivos } = await supabase.storage.from(BUCKET).list(mentor.id, { search: archivo });
-  if (!archivos?.some((item) => item.name === archivo)) return { ok: false, mensaje: "El audio no llegó a subirse." };
+  const subido = archivos?.find((item) => item.name === archivo);
+  if (!subido || !subido.metadata?.size || subido.metadata.size > 10 * 1024 * 1024) return { ok: false, mensaje: "El audio no llegó a subirse o supera los 10 MB." };
+  const { data: audio, error: errorAudio } = await supabase.storage.from(BUCKET).download(ruta);
+  if (errorAudio || !audio) return { ok: false, mensaje: "No se pudo verificar el audio. Probá nuevamente." };
+  if (!validarCabeceraAudio(extension, new Uint8Array(await audio.slice(0, 16).arrayBuffer()))) {
+    return { ok: false, mensaje: "El contenido no corresponde al formato de audio indicado. Exportalo nuevamente como MP3, M4A, WAV o WebM." };
+  }
   const { data: anterior } = await supabase.from("austral_perfiles_mentores")
     .select("audio_path").eq("mentor_id", mentor.id).maybeSingle();
   const { error } = await supabase.from("austral_perfiles_mentores").upsert({

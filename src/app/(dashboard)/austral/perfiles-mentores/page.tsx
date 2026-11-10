@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { FormularioPresentacion, ReproducirAudio, SubirAudio } from "./_components/formularios";
 import { guardarResumen, publicarPerfil, retirarPerfil, valorarPerfil } from "./actions";
 
-const bucket = "austral-audios-mentores";
 const boton = "inline-flex min-h-9 items-center border px-4 text-sm hover:bg-muted disabled:opacity-40";
 
 export default async function PerfilesMentores() {
@@ -26,11 +25,11 @@ export default async function PerfilesMentores() {
   const escuchas = escuchasResult.data ?? [];
   const valoraciones = valoracionesResult.data ?? [];
   const audioUrls = new Map<string, string>();
-  await Promise.all((perfilesResult.data ?? []).filter((p) => p.audio_path && (usuario.rol !== "alumno" || p.autoriza_audio))
-    .map(async (perfil) => {
-      const { data } = await supabase.storage.from(bucket).createSignedUrl(perfil.audio_path!, 60 * 60);
-      if (data?.signedUrl) audioUrls.set(perfil.mentor_id, data.signedUrl);
-    }));
+  for (const perfil of perfilesResult.data ?? []) {
+    if (perfil.audio_path && (usuario.rol !== "alumno" || perfil.autoriza_audio)) {
+      audioUrls.set(perfil.mentor_id, `/austral/perfiles-mentores/audio/${perfil.mentor_id}`);
+    }
+  }
 
   if (usuario.rol === "mentor") {
     const perfil = perfiles.get(usuario.id) ?? null;
@@ -124,7 +123,7 @@ export default async function PerfilesMentores() {
       {[
         [`${completos} / ${mentores.length}`, "perfiles completos antes de selección"],
         [`${conAudio} / ${mentores.length}`, "perfiles con audio"],
-        [String(escuchas.length), "reproducciones"],
+        [String(escuchas.length), "alumnos por mentor que iniciaron el audio"],
         [promedio, "satisfacción promedio (sobre 5)"],
       ].map(([numero, texto]) => <div key={texto}><p className="font-serif text-2xl">{numero}</p><p className="text-xs text-[#666]">{texto}</p></div>)}
     </section>
