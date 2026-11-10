@@ -26,10 +26,8 @@ const deMentores = ["/alumnos/entregas", "/alumnos/competencia", "/alumnos/agend
 const pestanasProfesores = [
   { href: "/alumnos/panel", label: "Panel de profesores" },
   { href: "/alumnos/aprobaciones", label: "Aprobar grupos" },
+  { href: "/alumnos/anteriores", label: "Años anteriores" },
 ];
-// Solo la ven los profesores (rol admin).
-const pestanaProfesores = { href: "/alumnos/panel", label: "Panel de profesores" };
-const pestanaAnteriores = { href: "/alumnos/anteriores", label: "Años anteriores" };
 
 // Los mentores solo usan Entregas (ven las de sus grupos y dejan devoluciones), Competencia y Agenda (solo lectura).
 export function SubNav({ esProfesor = false, soloEntregas = false }: { esProfesor?: boolean; soloEntregas?: boolean }) {
@@ -38,7 +36,6 @@ export function SubNav({ esProfesor = false, soloEntregas = false }: { esProfeso
     ? pestanas.filter((p) => deMentores.includes(p.href))
     : esProfesor
       ? [...pestanas.filter((p) => p.href !== "/alumnos/grupo"), ...pestanasProfesores]
-      ? [...pestanas, pestanaProfesores, pestanaAnteriores]
       : pestanas;
   return (
     <nav className="mb-8 flex gap-6 overflow-x-auto border-b">
