@@ -281,15 +281,6 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         </section>
       )}
 
-      <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-7">
-        {metricas.map(([label, valor]) => (
-          <Card key={label}>
-            <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
-            <CardContent className="font-serif text-4xl">{valor}</CardContent>
-          </Card>
-        ))}
-      </div>
-
       {proyectos.data!.length === 0 && <p className="text-[#666]">Todavía no hay proyectos cargados.</p>}
 
       <div className="grid gap-6">
@@ -411,7 +402,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
       </div>
       <h2 className="mt-12 mb-1 font-serif text-xl">Cómo viene funcionando el asistente</h2>
       <p className="mb-4 text-base text-[#555]">Números para la cátedra. No hace falta hacer nada acá.</p>
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-4 xl:grid-cols-7">
         {metricas.map(([label, valor]) => (
           <Card key={label}>
             <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>

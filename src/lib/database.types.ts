@@ -2921,6 +2921,9 @@ isOneToOne: false
 "jurado_publicar_evento":
 { Args: { "p_evento": string }; Returns: number
                            },
+"mentores_mis_proyectos":
+{ Args: Record<PropertyKey, never>; Returns: string[]
+                           },
 "mi_persona_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },

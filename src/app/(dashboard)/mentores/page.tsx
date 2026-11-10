@@ -44,7 +44,8 @@ export default async function Mentores() {
     supabase.from("mentores_reuniones").select("id", { count: "exact", head: true })
       .eq("mentor_id", persona.id).eq("cancelada", false).gt("inicio", ahoraIso()),
     // Los proyectos que el coordinador le asignó en el Match (la base solo le deja ver los suyos aceptados).
-    supabase.from("mentores_sugerencias").select("id, proyectos(nombre, descripcion)").eq("estado", "aceptada").order("decidido_at"),
+    supabase.rpc("mentores_mis_proyectos").then(async (r) =>
+      r.error ? r : supabase.from("proyectos").select("id, nombre, descripcion").in("id", r.data).order("nombre")),
   ]);
   if (error) throw error;
   if (encuestas.error) throw encuestas.error;
@@ -101,8 +102,8 @@ export default async function Mentores() {
           <div className="grid gap-px border bg-border">
             {asignados.data.map((a) => (
               <div key={a.id} className="grid gap-1 bg-background p-5">
-                <p className="font-medium">{a.proyectos.nombre}</p>
-                <p className="text-sm text-[#666]">{a.proyectos.descripcion || "Sin descripción"}</p>
+                <p className="font-medium">{a.nombre}</p>
+                <p className="text-sm text-[#666]">{a.descripcion || "Sin descripción"}</p>
               </div>
             ))}
           </div>

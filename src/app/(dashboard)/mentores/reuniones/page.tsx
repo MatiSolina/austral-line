@@ -30,6 +30,13 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
   const supabase = await createClient();
   await sinFrenar(pedirFeedback(supabase, await urlBase())); // las reuniones que ya terminaron piden su feedback
 
+  let misProyectos: string[] = [];
+  if (!esAdmin) {
+    const asignados = await supabase.rpc("mentores_mis_proyectos");
+    if (asignados.error) throw asignados.error;
+    misProyectos = asignados.data;
+  }
+
   // Cada mentor ve solo sus reuniones (lo asegura la base); el coordinador ve todas.
   const [reuniones, proyectos, mentores] = await Promise.all([
     supabase
@@ -39,13 +46,11 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
     // El coordinador agenda con cualquier proyecto; el mentor, solo con los que le asignaron en el Match.
     esAdmin
       ? supabase.from("proyectos").select("id, nombre").order("nombre")
-      : supabase.from("mentores_sugerencias").select("proyectos(id, nombre)").eq("estado", "aceptada"),
+      : supabase.from("proyectos").select("id, nombre").in("id", misProyectos).order("nombre"),
     supabase.from("personas").select("id, nombre").eq("rol", "mentor").order("nombre"),
   ]);
   for (const r of [reuniones, proyectos, mentores]) if (r.error) throw r.error;
-  const opciones = proyectos.data!
-    .map((p) => ("proyectos" in p ? p.proyectos : p))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const opciones = proyectos.data!;
 
   const ahora = new Date().getTime(); // Server Component: se calcula una vez por pedido
   const lista = reuniones.data!;

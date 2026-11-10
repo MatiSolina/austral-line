@@ -28,10 +28,9 @@ export async function crearReunion(formData: FormData) {
   const supabase = await createClient();
   // El mentor solo agenda con los proyectos que le asignó el coordinador en el Match.
   if (persona.rol !== "admin") {
-    const { data: asignado, error: errorAsignado } = await supabase
-      .from("mentores_sugerencias").select("id").eq("proyecto_id", proyectoId).eq("mentor_id", persona.id).eq("estado", "aceptada").limit(1);
+    const { data: asignados, error: errorAsignado } = await supabase.rpc("mentores_mis_proyectos");
     if (errorAsignado) throw errorAsignado;
-    if (!asignado.length) volver("/mentores/reuniones", { ok: false, mensaje: "Solo podés agendar reuniones con los proyectos que te asignó el coordinador." });
+    if (!asignados.includes(proyectoId)) volver("/mentores/reuniones", { ok: false, mensaje: "Solo podés agendar reuniones con los proyectos que te asignó el coordinador." });
   }
   const { data, error } = await supabase
     .from("mentores_reuniones")
