@@ -489,3 +489,20 @@ select p.id, pe.id,
        case when pe.email = 'fede@alumnos.austral.edu.ar' then now() end
 from p, personas pe
 where pe.email in ('fede@alumnos.austral.edu.ar', 'diego@alumnos.austral.edu.ar');
+-- GRUPO MENTORES: Marta queda asignada por el Match a AgroSense y Tutorly (los proyectos de sus reuniones).
+-- Con esto ve "Tus proyectos" en su inicio, puede agendar reuniones con ellos y las entregas de esos grupos.
+with pedido as (
+  insert into mentores_match_pedidos (proyecto_id, pedido_por)
+  select p.id, a.id from proyectos p, personas a
+  where p.nombre in ('AgroSense', 'Tutorly') and a.email = 'admin@austral.edu.ar'
+  returning id, proyecto_id, pedido_por
+)
+insert into mentores_sugerencias (pedido_id, proyecto_id, mentor_id, afinidad, motivo, estado, decidido_por, decidido_at)
+select pedido.id, pedido.proyecto_id, m.id, 80, 'Asignada en el seed de prueba.', 'aceptada', pedido.pedido_por, now() - interval '10 days'
+from pedido, personas m where m.email = 'marta@empresa.com';
+
+-- GRUPO MENTORES: Pablo también queda asignado a Tutorly (el proyecto de su reunión), así puede reprogramarla.
+insert into mentores_sugerencias (pedido_id, proyecto_id, mentor_id, afinidad, motivo, estado, decidido_por, decidido_at)
+select pe.id, pe.proyecto_id, m.id, 75, 'Asignado en el seed de prueba.', 'aceptada', pe.pedido_por, now() - interval '10 days'
+from mentores_match_pedidos pe join proyectos p on p.id = pe.proyecto_id, personas m
+where p.nombre = 'Tutorly' and m.email = 'pablo@empresa.com';

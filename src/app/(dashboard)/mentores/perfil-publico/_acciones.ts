@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
-import { camposPerfil, erroresParaPublicar, SIN_CLAVE_IA } from "../_lib";
+import { camposObligatorios, camposPerfil, erroresParaPublicar, SIN_CLAVE_IA } from "../_lib";
 import { organizarPerfilConIA, type PropuestaPerfil, type ResultadoOrganizar } from "./_ia";
 
 type Evento = Database["public"]["Tables"]["mentores_perfil_eventos"]["Insert"];
@@ -70,12 +70,26 @@ export async function organizar(textoOriginal: string): Promise<ResultadoOrganiz
 // El mentor eligió, campo por campo, qué valores aceptar (de la propuesta de la IA, o escritos a
 // mano en el modo sin IA); lo que no aceptó mantiene el valor que ya tenía (nunca se pisa sin que
 // él elija reemplazarlo). Crea el borrador si hace falta: el modo manual no pasa por organizar().
-export async function guardarCambios(camposAceptados: Partial<PropuestaPerfil>) {
+export async function guardarCambios(recibidos: Partial<PropuestaPerfil>) {
   const { supabase, persona } = await clienteYPersona();
 
   const { data: actual, error: errorActual } = await supabase
     .from("mentores_perfil").select("estado, ediciones_post_publicacion").eq("persona_id", persona.id).maybeSingle();
   if (errorActual) throw errorActual;
+
+  // Una Server Action se puede llamar a mano con cualquier objeto: solo pasan los campos del perfil.
+  // Sin esto alguien podía mandar estado: "publicado" y saltarse los obligatorios de publicar().
+  // Y un perfil ya publicado no puede quedar con un obligatorio vacío: ese cambio se ignora.
+  const camposAceptados: Partial<PropuestaPerfil> = {};
+  for (const { campo } of camposPerfil) {
+    if (!(campo in recibidos)) continue;
+    const valor = recibidos[campo];
+    const vacio = valor == null || (typeof valor === "string" && !valor.trim());
+    if (vacio && actual?.estado === "publicado" && (camposObligatorios as readonly string[]).includes(campo)) continue;
+    // Y cada campo con su tipo: años es un número entero, el resto texto.
+    if (campo === "anios_experiencia") camposAceptados[campo] = Number.isInteger(valor) ? (valor as number) : null;
+    else camposAceptados[campo] = typeof valor === "string" ? valor : null;
+  }
 
   if (!actual) {
     const { error } = await supabase.from("mentores_perfil").insert({ persona_id: persona.id, ...camposAceptados });
