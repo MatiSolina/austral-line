@@ -1013,6 +1013,62 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"austral_avisos_mentoria": {
+                  Row: {
+                    "created_at": string,"destinatario_id": string,"detalle": string | null,"enviado_por": string | null,"estado": string,"id": string,"mentor_id": string,"proyecto_id": string,"tipo": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"destinatario_id": string,"detalle"?: string | null,"enviado_por"?: string | null,"estado": string,"id"?: string,"mentor_id": string,"proyecto_id": string,"tipo": string
+                  }
+                  Update: {
+                    "created_at"?: string,"destinatario_id"?: string,"detalle"?: string | null,"enviado_por"?: string | null,"estado"?: string,"id"?: string,"mentor_id"?: string,"proyecto_id"?: string,"tipo"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "austral_avisos_mentoria_destinatario_id_fkey"
+      columns: ["destinatario_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_destinatario_id_fkey"
+      columns: ["destinatario_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_enviado_por_fkey"
+      columns: ["enviado_por"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_enviado_por_fkey"
+      columns: ["enviado_por"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_mentor_id_fkey"
+      columns: ["mentor_id"]
+isOneToOne: false
+      referencedRelation: "personas_contacto"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "austral_avisos_mentoria_proyecto_id_fkey"
+      columns: ["proyecto_id"]
+isOneToOne: false
+      referencedRelation: "proyectos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"austral_compatibilidades": {
                   Row: {
                     "calculado_at": string,"coincidencias": (string)[],"faltantes": (string)[],"mentor_id": string,"porcentaje": number,"proyecto_id": string,"revision_id": string
