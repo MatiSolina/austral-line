@@ -49,6 +49,9 @@ export default async function Recomendacion({ params, searchParams }: PageProps<
                     <input type="radio" name={campo} value={n} defaultChecked={s?.[campo] === n} /> {n}
                   </label>
                 ))}
+                <label className="flex items-center gap-1 text-[#666]">
+                  <input type="radio" name={campo} value="" defaultChecked={s?.[campo] == null} /> Sin dato
+                </label>
               </fieldset>
             ))}
             <div>

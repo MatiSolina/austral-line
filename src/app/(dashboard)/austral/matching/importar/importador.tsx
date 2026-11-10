@@ -21,6 +21,8 @@ export function Importador({ catalogo, alumnos }: Props) {
 
   async function elegir(f: File) {
     setResultado(null);
+    // Se vacía siempre: así, si el admin corrige el archivo y lo vuelve a elegir con el mismo nombre, se lee de nuevo.
+    if (input.current) input.current.value = "";
     if (!/\.(csv|txt)$/i.test(f.name)) {
       setVista({ filas: [], errorGeneral: "Elegí un archivo .csv. Si lo tenés en Excel: Archivo → Guardar como → CSV." });
       return;
@@ -36,11 +38,8 @@ export function Importador({ catalogo, alumnos }: Props) {
     const r = await importarPerfiles(texto);
     setResultado(r);
     setImportando(false);
-    if (r.ok) {
-      setVista(null);
-      if (input.current) input.current.value = "";
-      router.refresh();
-    }
+    if (r.ok) setVista(null);
+    router.refresh();
   }
 
   const validas = vista?.filas.filter((f) => !f.errores.length).length ?? 0;

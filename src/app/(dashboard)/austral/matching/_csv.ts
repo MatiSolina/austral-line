@@ -19,6 +19,10 @@ export type Fila = {
   errores: string[];
 };
 
+// Alumnos de personas_contacto que se pueden reconocer en el CSV (el admin ve todos los mails; igual descartamos nulos).
+export const alumnosConEmail = (filas: { id: string | null; nombre: string | null; email: string | null }[]) =>
+  filas.filter((a): a is { id: string; nombre: string; email: string } => !!a.id && !!a.nombre && !!a.email);
+
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 // CSV simple con comillas; el separador es ";" (Excel en español) o ",".
@@ -101,11 +105,12 @@ export function validar(
       for (const parte of textoHabilidades.split("|").map((p) => p.trim()).filter(Boolean)) {
         const corte = parte.lastIndexOf(":");
         const nombre = corte > 0 ? parte.slice(0, corte) : parte;
-        const nivel = nivelesValidos[sinTildes(corte > 0 ? parte.slice(corte + 1) : "2")];
+        const nivel = corte > 0 ? nivelesValidos[sinTildes(parte.slice(corte + 1))] : undefined;
         const h = habilidadPorNombre.get(sinTildes(nombre));
         if (!h) errores.push(`Habilidad desconocida: "${nombre.trim()}".`);
-        // Una habilidad dos veces haría fallar el alta en la base después de borrar las que tenía el alumno.
+        // Una habilidad dos veces haría fallar el alta en la base.
         else if (habilidades.some((x) => x.id === h.id)) errores.push(`Habilidad repetida: ${h.nombre}.`);
+        else if (corte <= 0) errores.push(`Falta el nivel de ${h.nombre} (por ejemplo ${h.nombre}:intermedio).`);
         else if (!nivel) errores.push(`Nivel inválido para ${h.nombre} (básico, intermedio o avanzado).`);
         else habilidades.push({ id: h.id, nombre: h.nombre, nivel });
       }

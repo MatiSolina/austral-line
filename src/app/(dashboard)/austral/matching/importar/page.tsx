@@ -2,7 +2,7 @@
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Encabezado } from "../_components/encabezado";
-import { columnas } from "../_csv";
+import { alumnosConEmail, columnas } from "../_csv";
 import { Importador } from "./importador";
 
 export default async function Importar() {
@@ -34,7 +34,7 @@ export default async function Importar() {
         <p className="mt-2 text-[#666]">Habilidades válidas: {catalogo.data.map((h) => h.nombre).join(", ")}.</p>
       </section>
       <div className="mt-6">
-        <Importador catalogo={catalogo.data} alumnos={alumnos.data.filter((a): a is { id: string; nombre: string; email: string } => !!a.id && !!a.email)} />
+        <Importador catalogo={catalogo.data} alumnos={alumnosConEmail(alumnos.data)} />
       </div>
     </div>
   );

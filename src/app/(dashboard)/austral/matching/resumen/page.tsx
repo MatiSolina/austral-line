@@ -54,7 +54,7 @@ export default async function Resumen({ searchParams }: PageProps<"/austral/matc
         <Indicador valor={i.matches} texto="matches generados" detalle={`sobre el puntaje mínimo (${datos.config.puntaje_minimo})`} />
         <Indicador valor={i.pendientes} texto="pendientes de validar" detalle="propuestas sin confirmar" />
         <Indicador valor={i.aceptados} texto="asignaciones confirmadas" />
-        <Indicador valor={porcentaje(i.consiguieronEquipo)} texto="consiguieron equipo" detalle="de los que pasaron por el matching" />
+        <Indicador valor={porcentaje(i.consiguieronEquipo)} texto="consiguieron equipo con el matching" detalle={`${i.aceptados} de ${i.aceptados + i.sinGrupo} (asignados + todavía sin grupo)`} />
       </div>
 
       {datos.alertas.length > 0 && (
@@ -120,7 +120,7 @@ export default async function Resumen({ searchParams }: PageProps<"/austral/matc
         <h2 className="font-serif text-xl">Seguimiento</h2>
         <p className="mt-1 mb-4 text-sm text-[#666]">Métricas de éxito del agente. La satisfacción se registra en cada asignación confirmada.</p>
         <div className="grid grid-cols-2 border-t border-l sm:grid-cols-3 lg:grid-cols-5">
-          <Indicador valor={porcentaje(i.consiguieronEquipo)} texto="se incorporaron a un equipo" detalle={`${s.incorporados} alumno${s.incorporados === 1 ? "" : "s"}`} />
+          <Indicador valor={porcentaje(i.consiguieronEquipo)} texto="de los alumnos sin grupo se incorporaron" detalle={`${s.incorporados} de ${s.incorporados + i.sinGrupo} con asignación confirmada`} />
           <Indicador valor={porcentaje(s.tasaAceptacion)} texto="recomendaciones aceptadas" detalle={`de ${s.decididas} decididas`} />
           <Indicador valor={uno(s.diasPromedio, " días")} texto="tiempo promedio hasta tener grupo" detalle="desde el alta del alumno en la app" />
           <Indicador valor={s.respuestas ? `${uno(s.satisfaccionAlumno)} / ${uno(s.satisfaccionEquipo)}` : "—"} texto="satisfacción alumno / equipo" detalle={`sobre 5 · ${s.respuestas} respuesta${s.respuestas === 1 ? "" : "s"}`} />
