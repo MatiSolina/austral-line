@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardCheck, ContactRound, FileUp, Gavel, GraduationCap, Handshake, Headphones, LayoutGrid, Lightbulb, MessageSquareText, MessagesSquare, UserPlus, Users } from "lucide-react";
+import { CalendarDays, ClipboardCheck, ContactRound, FileUp, Gavel, GraduationCap, Handshake, Headphones, LayoutGrid, Lightbulb, MessageSquareText, MessagesSquare, Mic2, UserPlus, Users } from "lucide-react";
 import type { Database } from "@/lib/database.types";
 
 export type Rol = Database["public"]["Enums"]["rol"];
@@ -24,6 +24,7 @@ export const secciones = [
   { href: "/austral/contacto-mentores", label: "Contactos de mentores", icon: ContactRound, roles: ["alumno", "mentor"] },
   { href: "/austral/matching", label: "Matching de alumnos", icon: UserPlus, roles: [] },
   { href: "/austral/preparacion", label: "Preparación de jurados", icon: ClipboardCheck, roles: [] },
+  { href: "/austral/perfiles-mentores", label: "Presentaciones de mentores", icon: Mic2, roles: ["alumno", "mentor"] },
   { href: "/austral/incentivos", label: "Incentivos", icon: Lightbulb, roles: [] },
   { href: "/austral/documentos", label: "Documentos del proyecto", icon: FileUp, roles: ["alumno"] },
   { href: "/austral/mi-preparacion", label: "Preparación", icon: Headphones, roles: ["jurado"] },
