@@ -5,9 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BotonUbicar } from "../_components/boton-ubicar";
 import { Encabezado, selectClase } from "../_components/encabezado";
 import { cargarMatching } from "../_datos";
 import { categorias, franjas, niveles, type Categoria } from "../_motor";
+import { ubicarAlumno } from "../acciones";
 
 export default async function Alumnos({ searchParams }: PageProps<"/austral/matching/alumnos">) {
   await requireRol(); // solo admin
@@ -20,6 +22,10 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
     .filter((a) => !busqueda || a.nombre.toLowerCase().includes(busqueda) || (a.carrera ?? "").toLowerCase().includes(busqueda))
     .filter((a) => !filtro || a.habilidades.some((h) => h.categoria === filtro));
   const nombreProyecto = new Map(datos.todosLosProyectos.map((p) => [p.id, p.nombre]));
+  // Opciones para ubicar a cada alumno: los proyectos que buscan integrantes y tienen lugar, del más al menos compatible.
+  const opcionesDe = (alumnoId: string) =>
+    datos.resultados.filter((r) => r.alumno.id === alumnoId).sort((x, y) => y.puntaje - x.puntaje);
+  const volver = `/austral/matching/alumnos${busqueda || filtro ? `?${new URLSearchParams({ ...(busqueda && { q: busqueda }), ...(filtro && { categoria: filtro }) })}` : ""}`;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -48,7 +54,7 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
           <TableHeader>
             <TableRow>
               <TableHead>Alumno</TableHead><TableHead>Carrera · año</TableHead><TableHead>Habilidades</TableHead>
-              <TableHead>Disponibilidad</TableHead><TableHead>Estado</TableHead><TableHead />
+              <TableHead>Disponibilidad</TableHead><TableHead>Estado</TableHead><TableHead>Ubicar en</TableHead><TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -72,6 +78,25 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
                     {propuesta
                       ? <Badge variant="outline">Propuesto a {nombreProyecto.get(propuesta)}</Badge>
                       : faltan.length ? <span className="text-sm text-destructive">Falta {faltan.join(", ")}</span> : <span className="text-sm text-[#666]">Completo</span>}
+                  </TableCell>
+                  <TableCell>
+                    {opcionesDe(a.id).length ? (
+                      <form action={ubicarAlumno} className="flex items-center gap-2">
+                        <input type="hidden" name="persona_id" value={a.id} />
+                        <input type="hidden" name="volver" value={volver} />
+                        <select name="proyecto_id" required defaultValue="" aria-label={`Proyecto para ${a.nombre}`} className={`${selectClase} max-w-56`}>
+                          <option value="" disabled>Elegir proyecto</option>
+                          {opcionesDe(a.id).map((r) => (
+                            <option key={r.proyecto.id} value={r.proyecto.id}>
+                              {r.proyecto.nombre} · {r.puntaje}%{propuesta ? " · propuesto" : ` · ${r.proyecto.vacantes} libre${r.proyecto.vacantes === 1 ? "" : "s"}`}
+                            </option>
+                          ))}
+                        </select>
+                        <BotonUbicar nombre={a.nombre} />
+                      </form>
+                    ) : (
+                      <span className="text-sm text-[#666]">Ningún proyecto con lugar</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Link href={`/austral/matching/alumnos/${a.id}`} className="text-sm underline underline-offset-4">Editar</Link>

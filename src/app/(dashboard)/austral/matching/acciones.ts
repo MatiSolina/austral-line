@@ -154,14 +154,7 @@ export async function confirmar(formData: FormData) {
     .eq("id", rec.id);
   if (cambio.error) throw cambio.error;
 
-  // Si el equipo llegó al tamaño buscado, deja de buscar.
-  const [{ count }, { data: necesidad }] = await Promise.all([
-    supabase.from("proyecto_integrantes").select("persona_id", { count: "exact", head: true }).eq("proyecto_id", rec.proyecto_id),
-    supabase.from("austral_proyecto_necesidades").select("integrantes_necesarios").eq("proyecto_id", rec.proyecto_id).maybeSingle(),
-  ]);
-  if (necesidad && (count ?? 0) >= necesidad.integrantes_necesarios) {
-    await supabase.from("austral_proyecto_necesidades").update({ estado: "completo" }).eq("proyecto_id", rec.proyecto_id);
-  }
+  await cerrarSiCompleto(supabase, rec.proyecto_id);
   // Ya no es un alumno sin grupo, así que su página de recomendación no tiene sentido: vuelve al panel.
   formData.set("volver", "/austral/matching");
   volver(formData, "ok", "Asignación confirmada: el alumno ya es parte del equipo.");
@@ -249,6 +242,57 @@ export async function guardarSatisfaccion(formData: FormData) {
   });
   if (error) throw error;
   volver(formData, "ok", "Satisfacción registrada.");
+}
+
+// Si el equipo llegó al tamaño buscado, deja de buscar.
+async function cerrarSiCompleto(supabase: Awaited<ReturnType<typeof createClient>>, proyectoId: string) {
+  const [{ count }, { data: necesidad }] = await Promise.all([
+    supabase.from("proyecto_integrantes").select("persona_id", { count: "exact", head: true }).eq("proyecto_id", proyectoId),
+    supabase.from("austral_proyecto_necesidades").select("integrantes_necesarios").eq("proyecto_id", proyectoId).maybeSingle(),
+  ]);
+  if (necesidad && (count ?? 0) >= necesidad.integrantes_necesarios) {
+    await supabase.from("austral_proyecto_necesidades").update({ estado: "completo" }).eq("proyecto_id", proyectoId);
+  }
+}
+
+// El admin ubica a mano a un alumno sin grupo en un proyecto que busca integrantes (desde "Alumnos sin grupo").
+// Es la decisión del admin, así que queda directo como asignación confirmada, con el puntaje del motor de ese momento.
+export async function ubicarAlumno(formData: FormData) {
+  const persona = await requireRol();
+  const supabase = await createClient();
+  const personaId = String(formData.get("persona_id"));
+  const proyectoId = String(formData.get("proyecto_id") ?? "");
+  if (!proyectoId) volver(formData, "error", "Elegí en qué proyecto ubicar al alumno.");
+
+  const datos = await cargarMatching(supabase);
+  const alumno = datos.sinGrupo.find((a) => a.id === personaId);
+  if (!alumno) volver(formData, "error", "Ese alumno ya está en un equipo.");
+  const enCurso = datos.conPropuesta.get(personaId);
+  if (enCurso && enCurso !== proyectoId) volver(formData, "error", `${alumno.nombre} tiene una propuesta en curso para otro proyecto. Resolvela desde Recomendaciones.`);
+  const resultado = datos.resultados.find((r) => r.alumno.id === personaId && r.proyecto.id === proyectoId);
+  // Con una propuesta aceptada para este mismo proyecto, su lugar ya está descontado de las vacantes.
+  if (!resultado || (!enCurso && resultado.proyecto.vacantes <= 0)) volver(formData, "error", "Ese proyecto ya no busca integrantes o no tiene lugares libres.");
+
+  const alta = await supabase.from("proyecto_integrantes").insert({ proyecto_id: proyectoId, persona_id: personaId });
+  if (alta.error && alta.error.code !== "23505") throw alta.error;
+  const ahora = new Date().toISOString();
+  const { error } = await supabase.from("austral_recomendaciones").upsert(
+    {
+      persona_id: personaId,
+      proyecto_id: proyectoId,
+      estado: "confirmada",
+      puntaje: resultado.puntaje,
+      justificacion: resultado.justificacion,
+      observaciones: "Ubicado a mano por el admin desde Alumnos sin grupo.",
+      decidido_por: persona.id,
+      decidido_at: ahora,
+      confirmado_at: ahora,
+    },
+    { onConflict: "persona_id,proyecto_id" },
+  );
+  if (error) throw error;
+  await cerrarSiCompleto(supabase, proyectoId);
+  volver(formData, "ok", `${alumno.nombre} ya es integrante de ${resultado.proyecto.nombre}.`);
 }
 
 // Opcional: una justificación más redactada. Usa solo los datos calculados por el motor; no cambia el puntaje.
