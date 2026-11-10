@@ -517,3 +517,8 @@ insert into alumnos_notas (evento_id, proyecto_id, puntos, comentario)
 select e.id, p.id, 32, 'Buena presentación del problema; falta validar con usuarios.'
 from (select id from eventos order by inicio limit 1) e, proyectos p
 where p.nombre = 'AgroSense';
+-- GRUPO ALUMNOS: proyectos de años anteriores (para el aviso de parecidos en el banco de ideas).
+insert into alumnos_proyectos_anteriores (nombre, anio, descripcion, resultado) values
+  ('MaquiCampo', 2024, 'Plataforma para que productores vecinos alquilen su maquinaria agrícola ociosa a otros productores de la zona.',
+   'Llegó al Demo Day; les costó resolver los seguros de la maquinaria.'),
+  ('Cocina Fácil', 2023, 'Recetas saludables y baratas para estudiantes que viven solos y tienen poco tiempo.', null);

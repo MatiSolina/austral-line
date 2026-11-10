@@ -63,7 +63,7 @@ export default async function PaginaDeIdea({ params, searchParams }: PageProps<"
   if (error) throw error;
   if (!idea) notFound();
 
-  const [interesados, mensajes, parecidas, carreras, temas, misReportes] = await Promise.all([
+  const [interesados, mensajes, parecidas, carreras, temas, misReportes, anteriores] = await Promise.all([
     supabase.from("alumnos_ideas_interesados").select("persona_id, personas:personas_contacto(nombre, email)").eq("idea_id", idea.id),
     supabase
       .from("alumnos_ideas_mensajes")
@@ -85,8 +85,10 @@ export default async function PaginaDeIdea({ params, searchParams }: PageProps<"
     esAlumno
       ? supabase.from("alumnos_ideas_reportes").select("mensaje_id").eq("idea_id", idea.id).eq("persona_id", persona.id)
       : Promise.resolve({ data: [], error: null }),
+    // Proyectos de años anteriores parecidos (por palabras en común con el título y la descripción).
+    supabase.rpc("alumnos_parecidos_anteriores", { p_texto: `${idea.titulo} ${idea.descripcion}` }),
   ]);
-  for (const r of [interesados, mensajes, parecidas, carreras, temas, misReportes]) if (r.error) throw r.error;
+  for (const r of [interesados, mensajes, parecidas, carreras, temas, misReportes, anteriores]) if (r.error) throw r.error;
 
   const volver = `/alumnos/ideas/${idea.id}`;
   const tomada = idea.estado === "tomada";
@@ -311,6 +313,25 @@ export default async function PaginaDeIdea({ params, searchParams }: PageProps<"
           </form>
         )}
       </section>
+
+      {/* Proyectos parecidos de años anteriores */}
+      {anteriores.data!.length > 0 && (
+        <section className="grid gap-3 border-t pt-8">
+          <h2 className="font-serif text-xl">Se parece a proyectos de años anteriores</h2>
+          <p className="text-sm text-[#666]">
+            No quiere decir que la idea no sirva: conviene mirar qué hicieron, qué les pasó y en qué se van a diferenciar.
+          </p>
+          <ul className="grid gap-2">
+            {anteriores.data!.map((p) => (
+              <li key={p.id} className="grid gap-1 border bg-card px-4 py-3 text-sm">
+                <span><span className="font-medium">{p.nombre}</span> <span className="text-[#666]">· {p.anio}</span></span>
+                <span className="text-[#666]">{p.descripcion}</span>
+                {p.resultado && <span className="text-xs">Qué pasó: {p.resultado}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Ideas parecidas */}
       {parecidas.data!.length > 0 && (
