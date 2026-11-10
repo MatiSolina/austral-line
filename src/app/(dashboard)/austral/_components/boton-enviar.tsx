@@ -10,12 +10,13 @@ type Props = {
   size?: "sm" | "lg";
   name?: string;
   value?: string;
+  disabled?: boolean;
 };
 
-export function BotonEnviar({ children, enviando, variant = "default", size = "sm", name, value }: Props) {
+export function BotonEnviar({ children, enviando, variant = "default", size = "sm", name, value, disabled }: Props) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant={variant} size={size} disabled={pending} name={name} value={value}>
+    <Button type="submit" variant={variant} size={size} disabled={pending || disabled} name={name} value={value}>
       {pending ? enviando : children}
     </Button>
   );

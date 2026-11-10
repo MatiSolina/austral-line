@@ -10,7 +10,8 @@ import { BotonConfirmar } from "../../_components/boton-confirmar";
 import { BotonEnviar } from "../../_components/boton-enviar";
 import { Escuchar } from "../../_components/escuchar";
 import { BUCKET, desactualizado, estados, fechaHora, tamano } from "../../_preparacion";
-import { despublicar, generar, guardar } from "../acciones";
+import { crearBorradorManual, despublicar, generar, guardar } from "../acciones";
+import { hayIA } from "../agente";
 
 const areaClase = "mt-1 w-full border bg-background p-3 text-sm leading-relaxed";
 
@@ -47,6 +48,7 @@ export default async function Revisar({ params, searchParams }: PageProps<"/aust
         Equipo: {proyecto.data.proyecto_integrantes.map((i) => i.personas.nombre).join(", ") || "sin integrantes cargados"}
         {m?.generado_at && ` · generado ${fechaHora(m.generado_at)}`}
         {m?.aprobado_at && ` · aprobado ${fechaHora(m.aprobado_at)}`}
+        {m && !m.generado_at && " · preparado manualmente"}
       </p>
 
       {ok && <p className="mb-6 border p-3 text-sm">{ok}</p>}
@@ -78,9 +80,15 @@ export default async function Revisar({ params, searchParams }: PageProps<"/aust
         <form action={generar} className="mt-4">
           <input type="hidden" name="proyecto_id" value={proyectoId} />
           <input type="hidden" name="volver" value={volver} />
-          <BotonEnviar variant="outline" enviando="Generando…">{m ? "Regenerar con IA" : "Generar con IA"}</BotonEnviar>
+          <BotonEnviar variant="outline" enviando="Generando…" disabled={!hayIA()}>{m ? "Regenerar con IA" : "Generar con IA"}</BotonEnviar>
           {m?.estado === "aprobado" && <span className="ml-3 text-sm text-[#666]">Regenerar lo saca de los jurados hasta que lo vuelvas a aprobar.</span>}
         </form>
+        {!hayIA() && <p className="mt-2 text-sm text-[#666]">La generación con IA requiere una clave configurada. Podés preparar y revisar el material manualmente.</p>}
+        {!m && <form action={crearBorradorManual} className="mt-4">
+          <input type="hidden" name="proyecto_id" value={proyectoId} />
+          <input type="hidden" name="volver" value={volver} />
+          <BotonEnviar variant="outline" enviando="Creando…">Preparar ficha manualmente</BotonEnviar>
+        </form>}
       </section>
 
       {m && (
