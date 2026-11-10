@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BotonConfirmar } from "../../_components/boton-confirmar";
+import { BotonUbicar } from "../_components/boton-ubicar";
 import { Encabezado, selectClase } from "../_components/encabezado";
 import { cargarMatching } from "../_datos";
 import { categorias, franjas, niveles, type Categoria } from "../_motor";
@@ -92,7 +92,7 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
                             </option>
                           ))}
                         </select>
-                        <BotonConfirmar variant="outline" mensaje={`¿Ubicar a ${a.nombre} en el proyecto elegido? Pasa a ser integrante del equipo.`}>Ubicar</BotonConfirmar>
+                        <BotonUbicar nombre={a.nombre} />
                       </form>
                     ) : (
                       <span className="text-sm text-[#666]">Ningún proyecto con lugar</span>
