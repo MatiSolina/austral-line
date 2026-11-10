@@ -273,8 +273,6 @@ export async function ubicarAlumno(formData: FormData) {
   // Con una propuesta aceptada para este mismo proyecto, su lugar ya está descontado de las vacantes.
   if (!resultado || (!enCurso && resultado.proyecto.vacantes <= 0)) volver(formData, "error", "Ese proyecto ya no busca integrantes o no tiene lugares libres.");
 
-  const alta = await supabase.from("proyecto_integrantes").insert({ proyecto_id: proyectoId, persona_id: personaId });
-  if (alta.error && alta.error.code !== "23505") throw alta.error;
   const ahora = new Date().toISOString();
   const { error } = await supabase.from("austral_recomendaciones").upsert(
     {
@@ -290,7 +288,11 @@ export async function ubicarAlumno(formData: FormData) {
     },
     { onConflict: "persona_id,proyecto_id" },
   );
+  // Primero la asignación y después el alta en el equipo: si el alumno ya tiene otra asignación vigente, no queda a medias.
+  if (error?.code === "23505") volver(formData, "error", `${alumno.nombre} ya tiene otra asignación registrada. Resolvela desde Recomendaciones.`);
   if (error) throw error;
+  const alta = await supabase.from("proyecto_integrantes").insert({ proyecto_id: proyectoId, persona_id: personaId });
+  if (alta.error && alta.error.code !== "23505") throw alta.error;
   await cerrarSiCompleto(supabase, proyectoId);
   volver(formData, "ok", `${alumno.nombre} ya es integrante de ${resultado.proyecto.nombre}.`);
 }

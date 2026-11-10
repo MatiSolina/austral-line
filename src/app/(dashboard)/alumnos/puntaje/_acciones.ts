@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { numero } from "../_lib/puntaje";
 
 const volver = (formData: FormData, aviso?: { error?: string; ok?: string }) => {
   revalidatePath("/alumnos/puntaje");
@@ -59,9 +60,16 @@ export async function guardarNotas(formData: FormData) {
   if (formData.has("grupo")) cargas.push({ proyecto_id: proyectoId, persona_id: null, campo: "grupo" });
   for (const id of formData.getAll("integrante").map(String)) cargas.push({ proyecto_id: null, persona_id: id, campo: `alumno_${id}` });
 
-  for (const c of cargas) {
-    const puntos = leerNumero(formData.get(c.campo));
-    if (puntos !== null && (Number.isNaN(puntos) || puntos < 0)) volver(formData, { error: "Los puntos tienen que ser números positivos." });
+  // Se valida todo antes de tocar nada: si un valor está mal, no se borra ninguna nota ya cargada.
+  const { data: hito, error: errorHito } = await supabase.from("alumnos_puntaje_hitos").select("maximo").eq("evento_id", eventoId).maybeSingle();
+  if (errorHito) volver(formData, { error: `No se pudo guardar: ${errorHito.message}` });
+  if (!hito) volver(formData, { error: "Primero fijá cuántos puntos vale este hito." });
+  const maximo = Number(hito!.maximo);
+  const filas = cargas.map((c) => ({ ...c, puntos: leerNumero(formData.get(c.campo)) }));
+  if (filas.some((f) => f.puntos !== null && (Number.isNaN(f.puntos) || f.puntos < 0 || f.puntos > maximo)))
+    volver(formData, { error: `Los puntos tienen que ser números entre 0 y ${numero(maximo)}.` });
+
+  for (const { puntos, ...c } of filas) {
     // Se reemplaza la nota anterior (si había) por la nueva; campo vacío = queda sin nota.
     const anterior = supabase.from("alumnos_notas").delete().eq("evento_id", eventoId);
     const { error: errorBorrar } = await (c.proyecto_id ? anterior.eq("proyecto_id", c.proyecto_id) : anterior.eq("persona_id", c.persona_id!));

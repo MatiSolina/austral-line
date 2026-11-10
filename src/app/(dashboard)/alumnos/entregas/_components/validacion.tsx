@@ -16,7 +16,12 @@ const VEREDICTO: Record<Veredicto, { icono: typeof CircleCheck; texto: string; c
 export type ValidacionGuardada = { created_at: string; resultado: { resumen?: string; items?: ItemValidado[] } };
 
 export function ResultadoValidacion({ v }: { v: ValidacionGuardada }) {
-  const items = v.resultado.items ?? [];
+  // El resultado viene de la base y lo puede escribir el propio grupo: se muestra solo lo que tiene la forma esperada.
+  const esTexto = (x: unknown): x is string => typeof x === "string";
+  const items = (Array.isArray(v.resultado.items) ? v.resultado.items : []).filter(
+    (i): i is ItemValidado => !!i && esTexto(i.item_id) && esTexto(i.texto) && esTexto(i.detalle),
+  );
+  const resumen = esTexto(v.resultado.resumen) ? v.resultado.resumen : "";
   const noCumple = items.filter((i) => i.veredicto === "no_cumple").length;
   return (
     <details className="border bg-background text-sm" open={noCumple > 0}>
@@ -28,10 +33,10 @@ export function ResultadoValidacion({ v }: { v: ValidacionGuardada }) {
         <span className="text-xs text-[#666]"> · {fechaHora(v.created_at)}</span>
       </summary>
       <div className="grid gap-2 border-t px-3 py-3">
-        {v.resultado.resumen && <p>{v.resultado.resumen}</p>}
+        {resumen && <p>{resumen}</p>}
         <ul className="grid gap-2">
           {items.map((i) => {
-            const { icono: Icono, texto, clase } = VEREDICTO[i.veredicto] ?? VEREDICTO.no_se_puede_saber;
+            const { icono: Icono, texto, clase } = Object.hasOwn(VEREDICTO, i.veredicto) ? VEREDICTO[i.veredicto] : VEREDICTO.no_se_puede_saber;
             return (
               <li key={i.item_id} className="flex items-start gap-2">
                 <Icono className={cn("mt-0.5 size-4 shrink-0", clase)} aria-hidden />
