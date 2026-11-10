@@ -1,9 +1,10 @@
-import { Check, Mail, Phone, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { Check, Mail, Phone } from "lucide-react";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FormularioMentor, FormularioSolicitud, FormularioVinculo } from "./_components/formularios";
-import { atenderSolicitud, quitarVinculo } from "./actions";
+import { FormularioMentor, FormularioQuitarVinculo, FormularioSolicitud, FormularioVinculo } from "./_components/formularios";
+import { atenderSolicitud } from "./actions";
 
 const modalidadLabel: Record<string, string> = {
   principal: "Principal", consulta: "Consulta puntual", ambas: "Principal y consulta",
@@ -30,14 +31,15 @@ export default async function ContactoMentores() {
     );
   }
 
-  const [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult] = await Promise.all([
+  const [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult] = await Promise.all([
     supabase.from("personas").select("id, nombre, rol").order("nombre"),
     supabase.from("austral_contactos_mentores").select("mentor_id, industria, especialidades, modalidad, email_contacto, telefono_contacto, acepta_consultas_otros, publicado, actualizado_at").order("actualizado_at", { ascending: false }),
     supabase.from("austral_vinculos_mentor_proyecto").select("mentor_id, proyecto_id"),
     supabase.from("proyectos").select("id, nombre").order("nombre"),
     supabase.from("austral_solicitudes_contacto").select("id, alumno_id, mentor_id, motivo, estado, created_at").order("created_at", { ascending: false }).limit(100),
+    supabase.from("austral_titulares_proyecto").select("proyecto_id, mentor_id"),
   ]);
-  for (const resultado of [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult]) {
+  for (const resultado of [personasResult, contactosResult, vinculosResult, proyectosResult, solicitudesResult, titularesResult]) {
     if (resultado.error) throw resultado.error;
   }
   const personas = personasResult.data ?? [];
@@ -46,6 +48,7 @@ export default async function ContactoMentores() {
   const vinculos = vinculosResult.data ?? [];
   const proyectos = proyectosResult.data ?? [];
   const solicitudes = solicitudesResult.data ?? [];
+  const titulares = new Map((titularesResult.data ?? []).map((titular) => [titular.proyecto_id, titular.mentor_id]));
   const nombres = new Map(personas.map((p) => [p.id, p.nombre]));
   const proyectosPorId = new Map(proyectos.map((proyecto) => [proyecto.id, proyecto.nombre]));
 
@@ -161,7 +164,9 @@ export default async function ContactoMentores() {
           <TableBody>{vinculos.map((vinculo) => <TableRow key={`${vinculo.mentor_id}-${vinculo.proyecto_id}`}>
             <TableCell>{nombres.get(vinculo.mentor_id)}</TableCell>
             <TableCell>{proyectosPorId.get(vinculo.proyecto_id)}</TableCell>
-            <TableCell><form action={quitarVinculo}><input type="hidden" name="mentor_id" value={vinculo.mentor_id} /><input type="hidden" name="proyecto_id" value={vinculo.proyecto_id} /><button type="submit" title="Quitar vínculo" aria-label="Quitar vínculo" className="p-1 hover:bg-muted"><Trash2 size={16} /></button></form></TableCell>
+            <TableCell>{titulares.get(vinculo.proyecto_id) === vinculo.mentor_id
+              ? <Link href="/austral/compatibilidad" className="text-xs underline underline-offset-4" title="Quitá o cambiá al titular en Compatibilidad antes de borrar su vínculo">Titular: gestionar</Link>
+              : <FormularioQuitarVinculo mentorId={vinculo.mentor_id} proyectoId={vinculo.proyecto_id} />}</TableCell>
           </TableRow>)}</TableBody>
         </Table></div> : <p className="border-y py-6 text-sm text-[#666]">No hay vínculos formales registrados.</p>}
       </section>
