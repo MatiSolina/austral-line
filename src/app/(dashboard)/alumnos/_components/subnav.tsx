@@ -14,6 +14,7 @@ const pestanas = [
   { href: "/alumnos/hitos", label: "Próximos hitos" },
   { href: "/alumnos/entregas", label: "Entregas" },
   { href: "/alumnos/competencia", label: "Competencia" },
+  { href: "/alumnos/puntaje", label: "Puntaje" },
 ];
 
 // Lo que usan los mentores: las entregas y la competencia de sus grupos.

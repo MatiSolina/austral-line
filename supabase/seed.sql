@@ -506,3 +506,14 @@ insert into mentores_sugerencias (pedido_id, proyecto_id, mentor_id, afinidad, m
 select pe.id, pe.proyecto_id, m.id, 75, 'Asignado en el seed de prueba.', 'aceptada', pe.pedido_por, now() - interval '10 days'
 from mentores_match_pedidos pe join proyectos p on p.id = pe.proyecto_id, personas m
 where p.nombre = 'Tutorly' and m.email = 'pablo@empresa.com';
+-- GRUPO ALUMNOS: puntaje para regularizar. Mínimo 60; los dos primeros hitos valen 40 y 60 puntos;
+-- AgroSense ya tiene 32 en el primero.
+update alumnos_puntaje_config set minimo = 60 where id = 1;
+insert into alumnos_puntaje_hitos (evento_id, maximo)
+select id, case when rn = 1 then 40 else 60 end
+from (select id, row_number() over (order by inicio) as rn from eventos) e
+where rn <= 2;
+insert into alumnos_notas (evento_id, proyecto_id, puntos, comentario)
+select e.id, p.id, 32, 'Buena presentación del problema; falta validar con usuarios.'
+from (select id from eventos order by inicio limit 1) e, proyectos p
+where p.nombre = 'AgroSense';
