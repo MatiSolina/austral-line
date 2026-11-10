@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { firmar } from "../_lib/firma";
 import { hayIA, responder } from "./_agente";
 
 const volver = (aviso?: { error?: string; ok?: string }) => {
@@ -37,7 +38,7 @@ export async function preguntar(formData: FormData) {
       completar = { p_estado: "error" };
     }
   }
-  const { error } = await supabase.rpc("alumnos_completar_pregunta", { p_pregunta: id!, ...completar });
+  const { error } = await supabase.rpc("alumnos_completar_pregunta_firmada", { p_pregunta: id!, p_firma: firmar(id!), ...completar });
   if (error) console.error("[alumnos/requisitos] no se pudo guardar la respuesta", error);
   volver(
     completar.p_estado === "respondida"

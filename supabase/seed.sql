@@ -522,3 +522,6 @@ insert into alumnos_proyectos_anteriores (nombre, anio, descripcion, resultado) 
   ('MaquiCampo', 2024, 'Plataforma para que productores vecinos alquilen su maquinaria agrícola ociosa a otros productores de la zona.',
    'Llegó al Demo Day; les costó resolver los seguros de la maquinaria.'),
   ('Cocina Fácil', 2023, 'Recetas saludables y baratas para estudiantes que viven solos y tienen poco tiempo.', null);
+
+-- GRUPO ALUMNOS: clave para firmar lo que guarda la IA (en .env.local: ALUMNOS_IA_FIRMA=desarrollo-local-firma; sin la variable se usa esa).
+insert into alumnos_ia_clave (clave) values ('desarrollo-local-firma') on conflict (id) do nothing;

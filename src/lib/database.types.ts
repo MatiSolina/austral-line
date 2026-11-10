@@ -435,6 +435,20 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"alumnos_ia_clave": {
+                  Row: {
+                    "clave": string,"id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clave": string,"id"?: number
+                  }
+                  Update: {
+                    "clave"?: string,"id"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"alumnos_ideas": {
                   Row: {
                     "a_quien_le_pasa": string | null,"autor_id": string | null,"como_seria_resuelto": string | null,"created_at": string,"descripcion": string,"estado": string,"id": string,"interes_id": number | null,"que_se_intento": string | null,"titulo": string,"updated_at": string
@@ -1541,14 +1555,14 @@ isOneToOne: true
                   ]
                 },"austral_recomendaciones": {
                   Row: {
-                    "confirmado_at": string | null,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"justificacion": string | null,"justificacion_ia": string | null,"observaciones": string | null,"persona_id": string,"proyecto_id": string,"puntaje": number | null
+                    "confirmado_at": string | null,"created_at": string,"decidido_at": string | null,"decidido_por": string | null,"estado": string,"id": string,"justificacion": string | null,"justificacion_ia": string | null,"observaciones": string | null,"origen": string,"persona_id": string,"proyecto_id": string,"puntaje": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "confirmado_at"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"justificacion"?: string | null,"justificacion_ia"?: string | null,"observaciones"?: string | null,"persona_id": string,"proyecto_id": string,"puntaje"?: number | null
+                    "confirmado_at"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"justificacion"?: string | null,"justificacion_ia"?: string | null,"observaciones"?: string | null,"origen"?: string,"persona_id": string,"proyecto_id": string,"puntaje"?: number | null
                   }
                   Update: {
-                    "confirmado_at"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"justificacion"?: string | null,"justificacion_ia"?: string | null,"observaciones"?: string | null,"persona_id"?: string,"proyecto_id"?: string,"puntaje"?: number | null
+                    "confirmado_at"?: string | null,"created_at"?: string,"decidido_at"?: string | null,"decidido_por"?: string | null,"estado"?: string,"id"?: string,"justificacion"?: string | null,"justificacion_ia"?: string | null,"observaciones"?: string | null,"origen"?: string,"persona_id"?: string,"proyecto_id"?: string,"puntaje"?: number | null
                   }
                   Relationships: [
                     {
@@ -2784,8 +2798,14 @@ isOneToOne: false
 "alumnos_completar_pregunta":
 { Args: { "p_cita"?: string,"p_estado": string,"p_pregunta": string,"p_respuesta"?: string }; Returns: undefined
                            },
+"alumnos_completar_pregunta_firmada":
+{ Args: { "p_cita"?: string,"p_estado": string,"p_firma": string,"p_pregunta": string,"p_respuesta"?: string }; Returns: undefined
+                           },
 "alumnos_completar_validacion":
 { Args: { "p_resultado"?: Json,"p_validacion": string }; Returns: undefined
+                           },
+"alumnos_completar_validacion_firmada":
+{ Args: { "p_firma": string,"p_resultado"?: Json,"p_validacion": string }; Returns: undefined
                            },
 "alumnos_crear_propuesta":
 { Args: { "p_idea"?: string,"p_nombre": string }; Returns: string
@@ -2812,6 +2832,9 @@ isOneToOne: false
                            },
 "alumnos_es_mi_proyecto":
 { Args: { "p_proyecto": string }; Returns: boolean
+                           },
+"alumnos_firma_valida":
+{ Args: { "p_firma": string,"p_id": string }; Returns: boolean
                            },
 "alumnos_grupos_compatibles":
 { Args: Record<PropertyKey, never>; Returns: {

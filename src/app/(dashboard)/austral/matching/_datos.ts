@@ -39,7 +39,7 @@ export async function cargarMatching(supabase: Supabase) {
       { proyecto_id: string; interes_id: number; estrellas: number }[],
       { proyecto_id: string; integrantes_necesarios: number; objetivo: string | null; problematica: string | null; disponibilidad: string[]; modalidad: string | null; estado: string }[],
       { proyecto_id: string; habilidad_id: number }[],
-      { id: string; persona_id: string; proyecto_id: string; estado: string; puntaje: number | null; justificacion: string | null; justificacion_ia: string | null; observaciones: string | null; decidido_at: string | null; confirmado_at: string | null }[],
+      { id: string; persona_id: string; proyecto_id: string; estado: string; puntaje: number | null; justificacion: string | null; justificacion_ia: string | null; observaciones: string | null; decidido_at: string | null; confirmado_at: string | null; origen: string }[],
       { id: number; nombre: string }[],
     ];
 

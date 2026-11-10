@@ -279,6 +279,7 @@ export async function ubicarAlumno(formData: FormData) {
       persona_id: personaId,
       proyecto_id: proyectoId,
       estado: "confirmada",
+      origen: "manual",
       puntaje: resultado.puntaje,
       justificacion: resultado.justificacion,
       observaciones: "Ubicado a mano por el admin desde Alumnos sin grupo.",

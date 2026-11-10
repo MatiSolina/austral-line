@@ -26,13 +26,15 @@ export async function calcularMetricas(supabase: Supabase, datos: Datos) {
 
   const porEstado = (e: string) => datos.decisiones.filter((d) => d.estado === e);
   const confirmadas = porEstado("confirmada");
+  // Las ubicaciones a mano del admin cuentan como incorporados, pero no para medir al motor.
+  const confirmadasMotor = confirmadas.filter((d) => d.origen === "motor");
   const aceptadas = porEstado("aceptada");
   const rechazadas = porEstado("rechazada");
-  const decididas = confirmadas.length + aceptadas.length + rechazadas.length;
+  const decididas = confirmadasMotor.length + aceptadas.length + rechazadas.length;
   const matches = datos.resultados.filter((r) => r.puntaje >= datos.config.puntaje_minimo);
 
   // Días desde que el alumno está en la app hasta que se confirmó su asignación.
-  const dias = confirmadas
+  const dias = confirmadasMotor
     .filter((d) => d.confirmado_at && altaDe.get(d.persona_id))
     .map((d) => (new Date(d.confirmado_at!).getTime() - new Date(altaDe.get(d.persona_id)!).getTime()) / 86_400_000);
 
@@ -71,7 +73,7 @@ export async function calcularMetricas(supabase: Supabase, datos: Datos) {
     },
     seguimiento: {
       incorporados: confirmadas.length,
-      tasaAceptacion: decididas ? (confirmadas.length + aceptadas.length) / decididas : null,
+      tasaAceptacion: decididas ? (confirmadasMotor.length + aceptadas.length) / decididas : null,
       decididas,
       diasPromedio: promedio(dias),
       satisfaccionAlumno: promedio(conAlumno),

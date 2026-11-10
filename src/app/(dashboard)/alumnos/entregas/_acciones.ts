@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { firmar } from "../_lib/firma";
 import { FORMATOS, hayIA as hayIAValidador, MAX_MB, validarArchivo } from "./_validador";
 
 const BUCKET = "alumnos-entregas";
@@ -235,7 +236,7 @@ export async function validarVersion(formData: FormData) {
     console.error("[alumnos/entregas] la validación con IA falló", e);
     aviso = "La IA no pudo revisar el archivo. Ese intento cuenta para el día; prueben de nuevo en un rato o avisen a los profesores si sigue fallando.";
   }
-  const { error } = await supabase.rpc("alumnos_completar_validacion", { p_validacion: reserva!, p_resultado: resultado ?? undefined });
+  const { error } = await supabase.rpc("alumnos_completar_validacion_firmada", { p_validacion: reserva!, p_firma: firmar(reserva!), p_resultado: resultado ?? undefined });
   if (error) console.error("[alumnos/entregas] no se pudo guardar la validación", error);
   if (aviso) conError(aviso);
   revalidatePath("/alumnos/entregas");
