@@ -97,7 +97,7 @@ export default async function Preparacion({ searchParams }: PageProps<"/austral/
 
       {ok && <p className="mb-6 border p-3 text-sm">{ok}</p>}
       {error && <p className="mb-6 border border-destructive p-3 text-sm text-destructive">{error}</p>}
-      {!hayIA() && <p className="mb-6 border border-destructive p-3 text-sm text-destructive">Falta configurar AI_GATEWAY_API_KEY: sin eso no se puede generar el material.</p>}
+      {!hayIA() && <p className="mb-6 border p-3 text-sm text-[#666]">La generación con IA no está configurada. Entrá en Preparar ficha para cargar el material manualmente y aprobarlo para los jurados.</p>}
 
       <div className="mb-10 grid grid-cols-2 border-t border-l sm:grid-cols-3">
         {metricas.map((m) => (
@@ -155,9 +155,9 @@ export default async function Preparacion({ searchParams }: PageProps<"/austral/
                           <form action={generar}>
                             <input type="hidden" name="proyecto_id" value={p.id} />
                             <input type="hidden" name="volver" value={volver} />
-                            <BotonEnviar variant="outline" enviando="Generando…">{m ? "Regenerar" : "Generar"}</BotonEnviar>
+                            <BotonEnviar variant="outline" enviando="Generando…" disabled={!hayIA()}>{m ? "Regenerar" : "Generar con IA"}</BotonEnviar>
                           </form>
-                          {m && <Link href={`/austral/preparacion/${p.id}?evento=${evento.id}`} className="text-sm underline underline-offset-4">Revisar</Link>}
+                          <Link href={`/austral/preparacion/${p.id}?evento=${evento.id}`} className="text-sm underline underline-offset-4">{m ? "Revisar" : "Preparar ficha"}</Link>
                         </div>
                       </TableCell>
                     </TableRow>

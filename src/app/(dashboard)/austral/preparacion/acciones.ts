@@ -24,6 +24,22 @@ export async function generar(formData: FormData) {
 
 const texto = (formData: FormData, campo: string) => String(formData.get(campo) ?? "").trim() || null;
 
+export async function crearBorradorManual(formData: FormData) {
+  await requireRol();
+  const proyectoId = String(formData.get("proyecto_id"));
+  if (!/^[0-9a-f-]{36}$/i.test(proyectoId)) volver(formData, "error", "Elegí un proyecto válido.");
+  const supabase = await createClient();
+  const { data: documentos, error: errorDocumentos } = await supabase.from("austral_documentos")
+    .select("id, nombre").eq("proyecto_id", proyectoId);
+  if (errorDocumentos) throw errorDocumentos;
+  const { error } = await supabase.from("austral_materiales").upsert({
+    proyecto_id: proyectoId, estado: "borrador", fuentes: documentos.map((d) => d.nombre),
+    documentos: documentos.map((d) => d.id),
+  }, { onConflict: "proyecto_id", ignoreDuplicates: true });
+  if (error) throw error;
+  volver(formData, "ok", "Borrador manual disponible. Completá el contexto, la problemática y el guion con información validada del equipo.");
+}
+
 // Guarda lo que editó el admin. Con `aprobar`, además lo publica para los jurados de su salón.
 export async function guardar(formData: FormData) {
   const persona = await requireRol();
