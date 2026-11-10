@@ -12,7 +12,7 @@ const MAX_DOCUMENTOS = 8; // los más recientes
 const MAX_BYTES_TOTAL = 25 * 1024 * 1024;
 const MAX_CARACTERES_TEXTO = 60_000;
 
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 type Redaccion = {
   suficiente: boolean;

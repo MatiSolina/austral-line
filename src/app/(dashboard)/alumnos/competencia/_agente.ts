@@ -6,7 +6,7 @@
 import { gateway, generateText, jsonSchema, Output, stepCountIs } from "ai";
 
 export const MODELO = "anthropic/claude-sonnet-5.5";
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 export type Breve = { nombre: string; problema: string; solucion: string; publico: string; mercado: string };
 

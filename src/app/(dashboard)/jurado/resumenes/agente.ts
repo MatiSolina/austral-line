@@ -20,7 +20,7 @@ const MIN_CARACTERES_TRANSCRIPCION = 300; // menos que esto no es una sesión tr
 const TOPE_IA_MS = 120_000;
 // Costo: cada clic manda el PDF y la transcripción dos veces (redactar y revisar). Por eso regenerar pide confirmación.
 
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 type Redaccion = { material_del_equipo: boolean; suficiente: boolean; texto: string; aviso: string };
 

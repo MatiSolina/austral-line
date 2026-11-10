@@ -20,7 +20,7 @@ type Resumen = Pick<Database["public"]["Tables"]["mentores_resumenes"]["Row"], "
 const MAX_ANTERIORES = 3;
 const MAX_TEMAS = 4;
 
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 // Dirección de la app para el link del mail: en Vercel la de producción, en local la del navegador.
 export async function urlBase() {

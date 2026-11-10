@@ -4,7 +4,7 @@
 import { generateText, jsonSchema, Output } from "ai";
 
 export const MODELO = "anthropic/claude-sonnet-5.5";
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 // Formatos que la IA puede leer. Para otros (Word, PowerPoint…) se pide subir un PDF.
 export const FORMATOS: Record<string, string> = {

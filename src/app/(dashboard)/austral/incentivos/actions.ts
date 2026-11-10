@@ -86,7 +86,7 @@ export async function generarPropuesta(
   fundamento += `La alternativa "${alternativa}" se presenta para estudio a partir de ` +
     `${participaciones.length === 1 ? "esta actividad" : "estas actividades"}: ${resumen}.`;
 
-  if (process.env.AI_GATEWAY_API_KEY) {
+  if (process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL) {
     try {
       const resultado = await generateText({
         model: "anthropic/claude-sonnet-5.5",

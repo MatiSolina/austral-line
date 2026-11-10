@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
 import { camposObligatorios, camposPerfil, erroresParaPublicar, SIN_CLAVE_IA } from "../_lib";
 import { organizarPerfilConIA, type PropuestaPerfil, type ResultadoOrganizar } from "./_ia";
+import { hayIA } from "../reuniones/agente";
 
 type Evento = Database["public"]["Tables"]["mentores_perfil_eventos"]["Insert"];
 
@@ -42,7 +43,7 @@ async function asegurarBorrador(supabase: Awaited<ReturnType<typeof createClient
 }
 
 export async function organizar(textoOriginal: string): Promise<ResultadoOrganizar> {
-  if (!process.env.AI_GATEWAY_API_KEY) throw new Error(SIN_CLAVE_IA);
+  if (!hayIA()) throw new Error(SIN_CLAVE_IA);
 
   const { supabase, persona } = await clienteYPersona();
   const texto = textoOriginal.trim();

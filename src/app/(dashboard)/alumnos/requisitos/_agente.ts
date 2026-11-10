@@ -5,7 +5,7 @@
 import { generateText, jsonSchema, Output } from "ai";
 
 export const MODELO = "anthropic/claude-sonnet-5.5";
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 type Salida = { puede_responder: boolean; respuesta: string; cita: string };
 

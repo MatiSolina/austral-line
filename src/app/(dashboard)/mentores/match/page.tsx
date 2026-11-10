@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { BotonEnviar } from "../_components/boton-enviar";
 import { Encabezado } from "../_components/accion";
 import { Estrellas } from "../_components/estrellas";
-import { urlBase } from "../reuniones/agente";
+import { hayIA, urlBase } from "../reuniones/agente";
 import { sugerirMentores } from "./agente";
 import { avisarAsignacion } from "./avisar";
 
@@ -26,7 +26,7 @@ async function pedirSugerencias(formData: FormData) {
   "use server";
   const coordinador = await requireRol();
   const proyectoId = String(formData.get("proyecto_id"));
-  if (!process.env.AI_GATEWAY_API_KEY) conError("Falta la clave de IA (AI_GATEWAY_API_KEY) en .env.local. Pedísela al profe.");
+  if (!hayIA()) conError("Falta la clave de IA (AI_GATEWAY_API_KEY) en .env.local. Pedísela al profe.");
 
   const supabase = await createClient();
   let resultado;
@@ -195,7 +195,7 @@ async function MensajeError({ searchParams }: Pick<PageProps<"/mentores/match">,
 
 export default async function Match({ searchParams }: PageProps<"/mentores/match">) {
   await requireRol();
-  const sinClaveIA = !process.env.AI_GATEWAY_API_KEY;
+  const sinClaveIA = !hayIA();
   const supabase = await createClient();
   const [proyectos, mentores, sugerencias, pedidos] = await Promise.all([
     supabase.from("proyectos").select("id, nombre, descripcion, estado").order("nombre"),

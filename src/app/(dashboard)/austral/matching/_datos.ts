@@ -5,7 +5,7 @@ import { alertas, evaluar, planSugerido, type Alumno, type Categoria, type Habil
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
+export const hayIA = () => !!(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN || process.env.VERCEL);
 
 export async function cargarMatching(supabase: Supabase) {
   const consultas = await Promise.all([
