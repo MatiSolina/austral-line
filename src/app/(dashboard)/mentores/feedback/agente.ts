@@ -15,7 +15,7 @@ import { conMail } from "@/lib/supabase/tipos";
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const MAX_POR_VUELTA = 3;
-const MODELO = "anthropic/claude-sonnet-5.5";
+const MODELO = "anthropic/claude-haiku-5.5";
 
 const estadoMail = (r: { ok: boolean }) => (!r.ok ? "error" : modoPrueba() ? "simulado" : "enviado");
 

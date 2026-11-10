@@ -134,7 +134,7 @@ export async function sugerirMentores(supabase: Supabase, proyectoId: string): P
   }
 
   const { output } = await generateText({
-    model: "anthropic/claude-sonnet-5.5",
+    model: "anthropic/claude-haiku-5.5",
     instructions: instrucciones,
     output: Output.object({ schema }),
     prompt: JSON.stringify({ proyecto: proyecto.data, equipo, mentores: candidatos }, null, 2),
