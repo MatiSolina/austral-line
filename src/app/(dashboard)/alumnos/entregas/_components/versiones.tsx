@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
 import { corregirNota, publicarDevolucion } from "../_acciones";
 import { BorrarVersion } from "./borrar-version";
+import { BotonValidar } from "./boton-validar";
+import { ResultadoValidacion, type ValidacionGuardada } from "./validacion";
+import { validarVersion } from "../_acciones";
 
 const ZONA = "America/Argentina/Buenos_Aires";
 const fecha = (iso: string) => new Date(iso).toLocaleDateString("es-AR", { day: "numeric", month: "short", timeZone: ZONA });
@@ -50,6 +53,9 @@ export function Versiones(props: {
   cierre: string;
   // El alumno puede borrar o corregir (antes del cierre) las versiones que todavía no tienen devoluciones.
   corregible?: boolean;
+  // Última validación con IA de cada versión, y si el alumno puede pedir una (el hito tiene checklist).
+  validaciones?: Map<string, ValidacionGuardada>;
+  puedeValidar?: boolean;
 }) {
   const { versiones, linkDe, persona } = props;
   const puedeDevolver = persona.rol !== "alumno";
@@ -86,6 +92,15 @@ export function Versiones(props: {
               )}
             </div>
             {v.nota && <p className="border-l-2 pl-3 text-sm">{v.nota}</p>}
+
+            {props.validaciones?.get(v.id) && <ResultadoValidacion v={props.validaciones.get(v.id)!} />}
+            {props.puedeValidar && (
+              <form action={validarVersion} className="text-sm">
+                <input type="hidden" name="entrega_id" value={v.id} />
+                {ocultos}
+                <BotonValidar texto={props.validaciones?.get(v.id) ? "Validar de nuevo con IA" : "Validar contra el checklist con IA"} />
+              </form>
+            )}
 
             {props.corregible && v.alumnos_entregas_devoluciones.length === 0 && (
               <div className="grid gap-2 text-sm">

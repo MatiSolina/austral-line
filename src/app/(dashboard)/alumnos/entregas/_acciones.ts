@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { FORMATOS, hayIA as hayIAValidador, MAX_MB, validarArchivo } from "./_validador";
 
 const BUCKET = "alumnos-entregas";
 const LIMITE_MB = 50;
@@ -198,6 +199,45 @@ export async function marcarRequisito(formData: FormData) {
         ? await supabase.from("alumnos_checklist_marcas").delete().eq("item_id", itemId).eq("persona_id", persona.id)
         : await supabase.from("alumnos_checklist_marcas").delete().eq("item_id", itemId).eq("proyecto_id", proyectoId);
   if (error && error.code !== "23505") redirect(`${volver}&error=${encodeURIComponent(`No se pudo guardar: ${error.message}`)}`);
+  revalidatePath("/alumnos/entregas");
+  redirect(volver);
+}
+
+// Validar una versión contra el checklist con IA: 1) reserva el lugar (cuenta para el día aunque falle),
+// 2) baja el archivo y lo revisa la IA, 3) guarda el resultado o marca el error.
+export async function validarVersion(formData: FormData) {
+  await requireRol("alumno");
+  const volver = volverA(formData);
+  const conError = (mensaje: string) => redirect(`${volver}&error=${encodeURIComponent(mensaje)}`);
+  if (!hayIAValidador()) conError("Falta configurar la IA: avisales a los profesores.");
+  const entregaId = String(formData.get("entrega_id"));
+  const supabase = await createClient();
+
+  const { data: entrega } = await supabase.from("alumnos_entregas").select("archivo_path, nombre_archivo, tamano_bytes, evento_id").eq("id", entregaId).maybeSingle();
+  if (!entrega) conError("No encontramos esa versión.");
+  const extension = entrega!.nombre_archivo.split(".").pop()?.toLowerCase() ?? "";
+  if (!FORMATOS[extension]) conError("La IA solo puede revisar archivos PDF o imágenes. Si es un Word o una presentación, exportalo a PDF y subilo como versión nueva.");
+  if (entrega!.tamano_bytes > MAX_MB * 1024 * 1024) conError(`Para validar con IA el archivo tiene que pesar hasta ${MAX_MB} MB.`);
+
+  const { data: reserva, error: errorReserva } = await supabase.rpc("alumnos_reservar_validacion", { p_entrega: entregaId });
+  if (errorReserva || !reserva) conError(errorReserva?.message ?? "No se pudo pedir la validación.");
+
+  let resultado: Awaited<ReturnType<typeof validarArchivo>> | null = null;
+  let aviso: string | null = null;
+  try {
+    const [{ data: requisitos }, { data: archivo, error: errorArchivo }] = await Promise.all([
+      supabase.from("alumnos_checklist_items").select("id, texto, obligatorio").eq("evento_id", entrega!.evento_id).order("orden").order("created_at"),
+      supabase.storage.from(BUCKET).download(entrega!.archivo_path),
+    ]);
+    if (errorArchivo || !archivo) throw errorArchivo ?? new Error("sin archivo");
+    resultado = await validarArchivo(new Uint8Array(await archivo.arrayBuffer()), entrega!.nombre_archivo, requisitos ?? []);
+  } catch (e) {
+    console.error("[alumnos/entregas] la validación con IA falló", e);
+    aviso = "La IA no pudo revisar el archivo. Ese intento cuenta para el día; prueben de nuevo en un rato o avisen a los profesores si sigue fallando.";
+  }
+  const { error } = await supabase.rpc("alumnos_completar_validacion", { p_validacion: reserva!, p_resultado: resultado ?? undefined });
+  if (error) console.error("[alumnos/entregas] no se pudo guardar la validación", error);
+  if (aviso) conError(aviso);
   revalidatePath("/alumnos/entregas");
   redirect(volver);
 }

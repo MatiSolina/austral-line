@@ -11,11 +11,15 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, UserRound, UsersRound, type LucideIcon } from "lucide-react";
 import { agregarRequisito, guardarTipoHito, quitarRequisito } from "./_acciones";
 import { Checklist, type Requisito } from "./_components/checklist";
+import type { ValidacionGuardada } from "./_components/validacion";
 import { SubirEntrega } from "./_components/subir-entrega";
 import { Versiones, type Version } from "./_components/versiones";
 
 const TIPOS = { grupal: "Grupal", individual: "Individual", ambas: "Grupal e individual" } as const;
 type Tipo = keyof typeof TIPOS;
+// Validar una versión con IA puede tardar hasta un minuto.
+export const maxDuration = 90;
+
 const SELECT_ENTREGA =
   "*, subidor:personas!alumnos_entregas_subida_por_fkey(nombre), alumnos_entregas_devoluciones(id, texto, created_at, respuesta_a, autor_id, autor:personas!alumnos_entregas_devoluciones_autor_id_fkey(nombre, rol))";
 
@@ -144,6 +148,15 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
       }));
   };
 
+  const todasIds = [...grupales.data!, ...individuales.data].map((e) => e.id);
+  const validaciones = todasIds.length
+    ? await supabase.from("alumnos_validaciones").select("entrega_id, created_at, resultado").eq("estado", "listo").in("entrega_id", todasIds).order("created_at", { ascending: false })
+    : { data: [], error: null };
+  if (validaciones.error) throw validaciones.error;
+  // La última validación terminada de cada versión.
+  const ultimaValidacion = new Map<string, ValidacionGuardada>();
+  for (const v of validaciones.data) if (!ultimaValidacion.has(v.entrega_id)) ultimaValidacion.set(v.entrega_id, v as ValidacionGuardada);
+
   const todas = [...grupales.data!, ...individuales.data] as (Version & { evento_id: string; persona_id: string | null })[];
   const tipoDe = new Map(tipos.data!.map((t) => [t.evento_id, t.tipo as Tipo]));
   const cierreFijado = new Map(tipos.data!.map((t) => [t.evento_id, t.cierre]));
@@ -201,7 +214,17 @@ export default async function Entregas({ searchParams }: PageProps<"/alumnos/ent
           const abiertoACambios = ahora < new Date(cierre).getTime();
           const apertura = aperturaDe.get(ev.id) ?? null;
           const todaviaNoAbre = apertura !== null && ahora < new Date(apertura).getTime();
-          const comun = { linkDe, persona, proyectoId: proyecto.id, eventoId: ev.id, cierre, corregible: esAlumno && abiertoACambios };
+          const tieneChecklist = requisitos.data!.some((q) => q.evento_id === ev.id);
+          const comun = {
+            linkDe,
+            persona,
+            proyectoId: proyecto.id,
+            eventoId: ev.id,
+            cierre,
+            corregible: esAlumno && abiertoACambios,
+            validaciones: ultimaValidacion,
+            puedeValidar: esAlumno && tieneChecklist,
+          };
           return (
             <li key={ev.id}>
               <details open={ev.id === abierto} className="group border bg-card">
