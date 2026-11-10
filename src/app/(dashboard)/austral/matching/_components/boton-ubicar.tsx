@@ -26,7 +26,7 @@ export function BotonUbicar({ nombre }: { nombre: string }) {
   }
   return (
     <span className="flex items-center gap-1">
-      <Button type="submit" size="sm" disabled={pending} title={`Sumar a ${nombre} al proyecto elegido`}>
+      <Button type="submit" size="sm" disabled={pending} aria-label={`Confirmar: ubicar a ${nombre}`}>
         {pending ? "Ubicando…" : "Confirmar"}
       </Button>
       <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => setConfirmando(false)}>
