@@ -79,7 +79,7 @@ async function sintetizar(d: DatosResumen): Promise<{ ia: Sintesis; aviso: strin
   if (!hayIA()) return { ia: null, aviso: null, error: null };
   try {
     const { output } = await generateText({
-      model: "anthropic/claude-sonnet-5.5",
+      model: "anthropic/claude-haiku-5.5",
       instructions: instrucciones,
       output: Output.object({ schema }),
       prompt: JSON.stringify({

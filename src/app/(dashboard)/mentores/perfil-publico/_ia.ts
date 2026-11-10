@@ -4,7 +4,7 @@
 import { generateObject, jsonSchema } from "ai";
 import { esLinkedin } from "../_lib";
 
-const modelo = "anthropic/claude-sonnet-5.5";
+const modelo = "anthropic/claude-haiku-5.5";
 
 interface PerfilExtraido {
   empresa: string | null;
