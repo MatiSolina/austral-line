@@ -21,16 +21,27 @@ function Lista({ titulo, items, vacio }: { titulo: string; items: string[]; vaci
   );
 }
 
-// El resultado viene de la base: se lee con valores por defecto por si le falta algún campo.
+// El resultado viene de la base y un integrante lo puede escribir por la API: se descarta lo que no tenga
+// la forma esperada y solo se muestran links http(s).
+const esLink = (u: unknown): u is string => typeof u === "string" && /^https?:\/\//i.test(u);
+const textos = (xs: unknown) => (Array.isArray(xs) ? xs.filter((x): x is string => typeof x === "string") : []);
+
 export function Analisis({ resultado }: { resultado: Partial<Resultado> }) {
   const r = {
-    resumen: resultado.resumen ?? "",
-    competidores: resultado.competidores ?? [],
-    diferenciales: resultado.diferenciales ?? [],
-    alertas: resultado.alertas ?? [],
-    preguntas: resultado.preguntas ?? [],
-    fuentes: resultado.fuentes ?? [],
-    descartados: resultado.descartados ?? 0,
+    resumen: typeof resultado.resumen === "string" ? resultado.resumen : "",
+    competidores: (Array.isArray(resultado.competidores) ? resultado.competidores : []).filter(
+      (c) =>
+        c &&
+        esLink(c.fuente) &&
+        [c.nombre, c.tipo, c.que_hace, c.parecido, c.diferencia].every((x) => typeof x === "string"),
+    ),
+    diferenciales: textos(resultado.diferenciales),
+    alertas: textos(resultado.alertas),
+    preguntas: textos(resultado.preguntas),
+    fuentes: (Array.isArray(resultado.fuentes) ? resultado.fuentes : []).filter(
+      (f) => f && typeof f.titulo === "string" && esLink(f.url),
+    ),
+    descartados: typeof resultado.descartados === "number" ? resultado.descartados : 0,
   };
   return (
     <div className="grid gap-6">
@@ -56,7 +67,7 @@ export function Analisis({ resultado }: { resultado: Partial<Resultado> }) {
                       <a href={c.fuente} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4 hover:text-[#666]">
                         {c.nombre}
                       </a>
-                      <Badge variant={c.tipo === "directo" ? "default" : "outline"}>{TIPO[c.tipo] ?? c.tipo}</Badge>
+                      <Badge variant={c.tipo === "directo" ? "default" : "outline"}>{Object.hasOwn(TIPO, c.tipo) ? TIPO[c.tipo] : c.tipo}</Badge>
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-normal">{c.que_hace}</TableCell>
