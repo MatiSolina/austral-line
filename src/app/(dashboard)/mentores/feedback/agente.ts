@@ -19,6 +19,16 @@ const MODELO = "anthropic/claude-sonnet-5.5";
 
 const estadoMail = (r: { ok: boolean }) => (!r.ok ? "error" : modoPrueba() ? "simulado" : "enviado");
 
+// Un mail que no sale (Resend caído, sin conexión) queda anotado como error: no corta al agente a mitad de camino,
+// que dejaría la reunión marcada como "feedback pedido" con encuestas sin crear.
+async function mandar(correo: Parameters<typeof enviarCorreo>[0]) {
+  try {
+    return await enviarCorreo(correo);
+  } catch (e) {
+    return { ok: false as const, error: `No se pudo mandar el mail (${e instanceof Error ? e.message : "error desconocido"}).` };
+  }
+}
+
 // Pide el feedback de las reuniones que ya terminaron. Corre cuando un mentor o el coordinador entra a Mentores.
 export async function pedirFeedback(supabase: Supabase, url: string) {
   const ahora = Date.now();
@@ -45,39 +55,70 @@ export async function pedirFeedback(supabase: Supabase, url: string) {
     if (errorMarca) throw errorMarca;
     if (!tomada.length) continue;
 
-    const { data: integrantes, error: errorIntegrantes } = await supabase
-      .from("proyecto_integrantes")
-      .select("personas:personas_contacto(id, nombre, email, rol)")
-      .eq("proyecto_id", r.proyecto_id);
-    if (errorIntegrantes) throw errorIntegrantes;
-    const alumnos = integrantes.map((i) => i.personas).filter((p) => p.rol === "alumno");
-
-    const destinatarios = [
-      { ...r.mentor, papel: "mentor" as const, con_quien: "el equipo" },
-      ...alumnos.map((a) => ({ ...a, papel: "alumno" as const, con_quien: r.mentor.nombre })),
-    ].filter(conMail);
-    for (const d of destinatarios) {
-      const encuesta = {
-        id: crypto.randomUUID(),
-        reunion_id: r.id,
-        persona_id: d.id,
-        papel: d.papel,
-        proyecto_nombre: r.proyectos.nombre,
-        reunion_inicio: r.inicio,
-        con_quien: d.con_quien,
-      };
-      // El mail sale antes de guardar porque el mentor no puede volver a leer las encuestas de los alumnos.
-      const envio = await enviarCorreo({ para: d.email, ...mailPedido({ ...encuesta, nombre: d.nombre }, url) });
-      const { error: errorEncuesta } = await supabase.from("mentores_encuestas").insert({
-        ...encuesta,
-        mail_estado: estadoMail(envio),
-        mail_error: envio.ok ? null : envio.error,
-      });
-      if (errorEncuesta && errorEncuesta.code !== "23505") throw errorEncuesta; // 23505 = ya la tenía
-      pedidas++;
+    try {
+      pedidas += await pedirDeReunion(supabase, r, url);
+    } catch (e) {
+      // Si algo falla a mitad de camino, se desmarca para que la próxima vuelta lo intente de nuevo
+      // (las encuestas que ya estaban no se duplican: una por persona y reunión).
+      await supabase.from("mentores_reuniones").update({ feedback_pedido_at: null }).eq("id", r.id);
+      throw e;
     }
   }
   return pedidas;
+}
+
+type ReunionTerminada = {
+  id: string;
+  inicio: string;
+  proyecto_id: string;
+  proyectos: { nombre: string };
+  mentor: { id: string; nombre: string; email: string | null };
+};
+
+async function pedirDeReunion(supabase: Supabase, r: ReunionTerminada, url: string) {
+  const { data: integrantes, error: errorIntegrantes } = await supabase
+    .from("proyecto_integrantes")
+    .select("personas:personas_contacto(id, nombre, email, rol)")
+    .eq("proyecto_id", r.proyecto_id);
+  if (errorIntegrantes) throw errorIntegrantes;
+  const alumnos = integrantes.map((i) => i.personas).filter((p) => p.rol === "alumno");
+
+  const destinatarios = [
+    { ...r.mentor, papel: "mentor" as const, con_quien: "el equipo" },
+    ...alumnos.map((a) => ({ ...a, papel: "alumno" as const, con_quien: r.mentor.nombre })),
+  ].filter(conMail);
+  let pedidas = 0;
+  for (const d of destinatarios) {
+    const encuesta = {
+      id: crypto.randomUUID(),
+      reunion_id: r.id,
+      persona_id: d.id,
+      papel: d.papel,
+      proyecto_nombre: r.proyectos.nombre,
+      reunion_inicio: r.inicio,
+      con_quien: d.con_quien,
+    };
+    // El mail sale antes de guardar porque el mentor no puede volver a leer las encuestas de los alumnos.
+    const envio = await mandar({ para: d.email, ...mailPedido({ ...encuesta, nombre: d.nombre }, url) });
+    const { error: errorEncuesta } = await supabase.from("mentores_encuestas").insert({
+      ...encuesta,
+      mail_estado: estadoMail(envio),
+      mail_error: envio.ok ? null : envio.error,
+    });
+    if (errorEncuesta && errorEncuesta.code !== "23505") throw errorEncuesta; // 23505 = ya la tenía
+    pedidas++;
+  }
+  return pedidas;
+}
+
+// Para las pantallas: si el agente falla por algo inesperado, la pantalla se muestra igual.
+// Queda en el registro del servidor y se vuelve a intentar la próxima vez que alguien entra.
+export async function sinFrenar(tarea: Promise<unknown>) {
+  try {
+    await tarea;
+  } catch (e) {
+    console.error("Agente de feedback:", e);
+  }
 }
 
 // Lo que hace el agente cuando entra el coordinador: un único recordatorio, cierra lo que quedó sin respuesta
@@ -89,6 +130,7 @@ export async function ponerAlDia(supabase: Supabase, url: string) {
     .select("id, created_at, recordatorio_at, con_quien, proyecto_nombre, reunion_inicio, personas:personas_contacto(nombre, email)")
     .eq("estado", "pendiente")
     .lte("created_at", new Date(ahora - RECORDATORIO).toISOString())
+    .order("created_at") // las más viejas primero: son las que vencen antes
     .limit(20);
   if (error) throw error;
 
@@ -111,7 +153,7 @@ export async function ponerAlDia(supabase: Supabase, url: string) {
         .select("id");
       if (errorRecordatorio) throw errorRecordatorio;
       if (!marcada.length || !e.personas.email) continue;
-      const envio = await enviarCorreo({ para: e.personas.email, ...mailPedido({ ...e, nombre: e.personas.nombre }, url, { recordatorio: true }) });
+      const envio = await mandar({ para: e.personas.email, ...mailPedido({ ...e, nombre: e.personas.nombre }, url, { recordatorio: true }) });
       if (!envio.ok) {
         const { error: errorMail } = await supabase.from("mentores_encuestas").update({ mail_error: envio.error }).eq("id", e.id);
         if (errorMail) throw errorMail;
@@ -294,7 +336,7 @@ export async function revisarRespuesta(supabase: Supabase, encuestaId: string, u
     motivo: motivo ?? (e.urgente ? "Pidió que el coordinador se entere." : null),
     comentarios: [e.sirvio, e.mejorar].filter((c) => c !== null),
   }, url);
-  for (const a of admins.filter(conMail)) await enviarCorreo({ para: a.email, asunto, html });
+  for (const a of admins.filter(conMail)) await mandar({ para: a.email, asunto, html });
 
   const { error: errorEscalada } = await supabase
     .from("mentores_encuestas")

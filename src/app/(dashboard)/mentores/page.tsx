@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { urlBase } from "./reuniones/agente";
-import { pedirFeedback } from "./feedback/agente";
+import { pedirFeedback, sinFrenar } from "./feedback/agente";
 
 async function marcarRevisado(formData: FormData) {
   "use server";
@@ -41,7 +41,7 @@ export default async function Mentores() {
   const persona = await requireRol("mentor");
   const supabase = await createClient();
   // Al entrar, el asistente pide el feedback de las reuniones que ya terminaron.
-  await pedirFeedback(supabase, await urlBase());
+  await sinFrenar(pedirFeedback(supabase, await urlBase()));
 
   if (persona.rol === "admin") return <PanelAdmin />;
 

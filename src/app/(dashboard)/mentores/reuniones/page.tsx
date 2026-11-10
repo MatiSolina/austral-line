@@ -13,7 +13,7 @@ import { hayIA, urlBase } from "./agente";
 import { BotonGuardar } from "./boton-guardar";
 import { estadoResumen, metricas, vigente, type Tono } from "./estado";
 import { fechaCorta, fechaHora } from "./fechas";
-import { pedirFeedback } from "../feedback/agente";
+import { pedirFeedback, sinFrenar } from "../feedback/agente";
 
 const variantes: Record<Tono, "default" | "outline" | "destructive" | "secondary"> = {
   ok: "default",
@@ -27,7 +27,7 @@ export default async function Reuniones({ searchParams }: PageProps<"/mentores/r
   const esAdmin = persona.rol === "admin";
   const { ok, error } = await searchParams;
   const supabase = await createClient();
-  await pedirFeedback(supabase, await urlBase()); // las reuniones que ya terminaron piden su feedback
+  await sinFrenar(pedirFeedback(supabase, await urlBase())); // las reuniones que ya terminaron piden su feedback
 
   // Cada mentor ve solo sus reuniones (lo asegura la base); el coordinador ve todas.
   const [reuniones, proyectos, mentores] = await Promise.all([

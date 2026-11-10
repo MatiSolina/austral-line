@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { urlBase } from "../reuniones/agente";
 import { fechaHora } from "../reuniones/fechas";
-import { pedirFeedback } from "../feedback/agente";
+import { pedirFeedback, sinFrenar } from "../feedback/agente";
 
 export default async function MiFeedback() {
   const persona = await requireRol("mentor", "alumno");
@@ -24,7 +24,7 @@ export default async function MiFeedback() {
 
   const supabase = await createClient();
   // El mentor que entra dispara el pedido de las reuniones suyas que ya terminaron.
-  if (persona.rol === "mentor") await pedirFeedback(supabase, await urlBase());
+  if (persona.rol === "mentor") await sinFrenar(pedirFeedback(supabase, await urlBase()));
   const { data, error } = await supabase
     .from("mentores_encuestas")
     .select("id, estado, proyecto_nombre, reunion_inicio, con_quien, respondida_at")

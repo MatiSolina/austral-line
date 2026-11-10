@@ -10,7 +10,7 @@ import { hayIA, urlBase } from "../reuniones/agente";
 import { BotonGuardar } from "../reuniones/boton-guardar";
 import { fechaCorta, fechaHora } from "../reuniones/fechas";
 import { marcarResumen, rehacerResumen } from "./acciones";
-import { pedirFeedback, ponerAlDia } from "./agente";
+import { pedirFeedback, ponerAlDia, sinFrenar } from "./agente";
 import { metricas, puntajes, tiempo } from "./reglas";
 
 const nombresEstado: Record<string, string> = {
@@ -24,8 +24,8 @@ export default async function Feedback({ searchParams }: PageProps<"/mentores/fe
   const { ok, error } = await searchParams;
   const supabase = await createClient();
   const url = await urlBase();
-  await pedirFeedback(supabase, url);
-  await ponerAlDia(supabase, url);
+  await sinFrenar(pedirFeedback(supabase, url));
+  await sinFrenar(ponerAlDia(supabase, url));
 
   const { data: reuniones, error: errorReuniones } = await supabase
     .from("mentores_reuniones")
