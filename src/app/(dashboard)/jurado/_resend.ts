@@ -31,18 +31,31 @@ function explicarError(status: number, mensaje?: string) {
   return `Resend respondió con un error: ${mensaje ?? status}`;
 }
 
-// Manda en lotes de hasta 100 (límite de Resend). Cada mail puede tener su propio horario programado.
+const armar = (c: Correo) => ({
+  from: remitente(),
+  to: [c.para],
+  subject: c.asunto,
+  html: c.html,
+  ...(c.programadoPara && { scheduled_at: c.programadoPara }),
+});
+
+// Manda en lotes de hasta 100 (límite de Resend). Los envíos en lote de Resend no aceptan horario
+// programado, así que los mails programados salen de a uno.
 export async function enviarCorreos(correos: Correo[]): Promise<Resultado> {
   if (modoPrueba()) return { ok: true, ids: correos.map(() => null) };
   const ids: string[] = [];
+  if (correos.some((c) => c.programadoPara)) {
+    for (const [i, c] of correos.entries()) {
+      // ponytail: pausa fija para no pasar el límite de 2 pedidos por segundo de Resend.
+      if (i) await new Promise((r) => setTimeout(r, 600));
+      const { res, datos } = await llamar("/emails", armar(c));
+      if (!res.ok) return { ok: false, error: explicarError(res.status, datos?.message) };
+      ids.push(datos.id);
+    }
+    return { ok: true, ids };
+  }
   for (let i = 0; i < correos.length; i += 100) {
-    const lote = correos.slice(i, i + 100).map((c) => ({
-      from: remitente(),
-      to: [c.para],
-      subject: c.asunto,
-      html: c.html,
-      ...(c.programadoPara && { scheduled_at: c.programadoPara }),
-    }));
+    const lote = correos.slice(i, i + 100).map(armar);
     const { res, datos } = await llamar("/emails/batch", lote);
     if (!res.ok) return { ok: false, error: explicarError(res.status, datos?.message) };
     ids.push(...(datos.data as { id: string }[]).map((d) => d.id));
