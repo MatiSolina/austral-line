@@ -33,6 +33,7 @@ export default async function Matching({ searchParams }: PageProps<"/austral/mat
     const d = datos.decisionDe(r.alumno.id, r.proyecto.id);
     if (d && d.estado !== "pendiente") return <Badge variant={claseEstado[d.estado].variante}>{claseEstado[d.estado].texto}</Badge>;
     if (datos.plan.has(`${r.alumno.id}:${r.proyecto.id}`)) return <Badge>Sugerido</Badge>;
+    if (r.bloqueo) return <span className="text-xs text-destructive" title={r.bloqueo}>No cumple las restricciones</span>;
     if (r.puntaje < datos.config.puntaje_minimo) return <span className="text-xs text-[#666]">Bajo el mínimo</span>;
     return d ? <Badge variant="secondary">Pendiente</Badge> : null;
   };

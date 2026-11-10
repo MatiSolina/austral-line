@@ -90,6 +90,7 @@ export default async function Recomendacion({ params, searchParams }: PageProps<
             <div className="text-sm text-[#666]">compatibilidad</div>
             {datos.plan.has(`${personaId}:${proyectoId}`) && <Badge className="mt-3">Sugerido por el agente</Badge>}
             {r.puntaje < datos.config.puntaje_minimo && <p className="mt-3 text-xs text-destructive">Por debajo del puntaje mínimo ({datos.config.puntaje_minimo}).</p>}
+            {r.bloqueo && <p className="mt-3 text-xs text-destructive">No cumple las restricciones del grupo: {r.bloqueo}</p>}
           </div>
           <div className="space-y-2">
             {(Object.keys(criterios) as (keyof Pesos)[]).map((k) => {

@@ -30,12 +30,17 @@ export default async function PesosMatching({ searchParams }: PageProps<"/austra
     disponibilidad: c.peso_disponibilidad,
     equilibrio: c.peso_equilibrio,
   };
+  const restricciones = [
+    { id: "integrantes_min", titulo: "Mínimo de integrantes por grupo", ayuda: "Los grupos con menos integrantes aparecen en Alertas para que los priorices.", valor: c.integrantes_min, max: 12 },
+    { id: "integrantes_max", titulo: "Máximo de integrantes por grupo", ayuda: "Un grupo que llegó al máximo deja de recibir recomendaciones y no se puede ubicar a nadie más.", valor: c.integrantes_max, max: 12 },
+    { id: "carreras_min", titulo: "Mínimo de carreras distintas por grupo", ayuda: "Si el grupo se queda sin lugares para llegar a este número, el agente solo recomienda alumnos de otras carreras.", valor: c.carreras_min, max: 6 },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl">
       <Encabezado
         titulo="Ponderación"
-        descripcion="Cuánto pesa cada criterio en el puntaje de compatibilidad (0 a 100). Los pesos tienen que sumar 100."
+        descripcion="Cuánto pesa cada criterio en el puntaje de compatibilidad (0 a 100; tienen que sumar 100) y las restricciones para armar los grupos."
         actual="/austral/matching/pesos"
         ok={ok}
         error={error}
@@ -58,8 +63,24 @@ export default async function PesosMatching({ searchParams }: PageProps<"/austra
           </div>
           <input id="puntaje_minimo" name="puntaje_minimo" type="number" min={0} max={100} defaultValue={c.puntaje_minimo} className={campoClase} />
         </div>
+
+        <div className="pt-8">
+          <h2 className="font-serif text-xl">Restricciones de los grupos</h2>
+          <p className="mt-1 text-xs text-[#666]">
+            El agente las respeta al recomendar y al ubicar alumnos sin grupo, y avisa en Alertas cuando un grupo no las cumple.
+          </p>
+        </div>
+        {restricciones.map((r) => (
+          <div key={r.id} className="grid grid-cols-[1fr_6rem] items-center gap-4 border-b pb-4">
+            <div>
+              <Label htmlFor={r.id}>{r.titulo}</Label>
+              <p className="text-xs text-[#666]">{r.ayuda}</p>
+            </div>
+            <input id={r.id} name={r.id} type="number" min={1} max={r.max} defaultValue={r.valor} className={campoClase} />
+          </div>
+        ))}
         <div className="pt-4">
-          <BotonEnviar enviando="Guardando…">Guardar ponderación</BotonEnviar>
+          <BotonEnviar enviando="Guardando…">Guardar ponderación y restricciones</BotonEnviar>
         </div>
       </form>
     </div>

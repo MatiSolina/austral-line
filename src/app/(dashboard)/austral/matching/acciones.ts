@@ -94,11 +94,19 @@ export async function guardarPesos(formData: FormData) {
   if (suma !== 100) volver(formData, "error", `Los pesos tienen que sumar 100 (ahora suman ${suma}).`);
   const minimo = Number(formData.get("puntaje_minimo"));
   if (!Number.isInteger(minimo) || minimo < 0 || minimo > 100) volver(formData, "error", "El puntaje mínimo tiene que estar entre 0 y 100.");
+  const [integrantesMin, integrantesMax, carrerasMin] = ["integrantes_min", "integrantes_max", "carreras_min"].map((k) => Number(formData.get(k)));
+  if (![integrantesMin, integrantesMax].every((n) => Number.isInteger(n) && n >= 1 && n <= 12)) volver(formData, "error", "El mínimo y el máximo de integrantes tienen que estar entre 1 y 12.");
+  if (integrantesMin > integrantesMax) volver(formData, "error", "El mínimo de integrantes no puede ser mayor que el máximo.");
+  if (!Number.isInteger(carrerasMin) || carrerasMin < 1 || carrerasMin > 6) volver(formData, "error", "El mínimo de carreras distintas tiene que estar entre 1 y 6.");
+  if (carrerasMin > integrantesMax) volver(formData, "error", `Con un máximo de ${integrantesMax} integrantes no se pueden pedir ${carrerasMin} carreras distintas.`);
 
   const supabase = await createClient();
-  const { error } = await supabase.from("austral_matching_config").update({ ...pesos, puntaje_minimo: minimo, updated_at: new Date().toISOString() }).eq("id", true);
+  const { error } = await supabase
+    .from("austral_matching_config")
+    .update({ ...pesos, puntaje_minimo: minimo, integrantes_min: integrantesMin, integrantes_max: integrantesMax, carreras_min: carrerasMin, updated_at: new Date().toISOString() })
+    .eq("id", true);
   if (error) throw error;
-  volver(formData, "ok", "Ponderación guardada: los puntajes ya se recalcularon.");
+  volver(formData, "ok", "Ponderación y restricciones guardadas: los puntajes y las recomendaciones ya se recalcularon.");
 }
 
 // Aceptar (= propuesta a confirmar), rechazar o dejar pendiente. Guarda el puntaje y la justificación de ese momento,
@@ -117,7 +125,8 @@ export async function decidir(formData: FormData) {
   const resultado = datos.resultados.find((r) => r.alumno.id === personaId && r.proyecto.id === proyectoId);
   if (decision === "aceptada") {
     if (!resultado) volver(formData, "error", "Ese proyecto ya no busca integrantes o el alumno tiene otra propuesta en curso.");
-    if (previa?.estado !== "aceptada" && resultado.proyecto.vacantes <= 0) volver(formData, "error", "El proyecto ya no tiene lugares libres.");
+    if (previa?.estado !== "aceptada" && resultado.proyecto.vacantes <= 0) volver(formData, "error", "El proyecto ya no tiene lugares libres (llegó a lo que busca o al máximo de integrantes por grupo).");
+    if (previa?.estado !== "aceptada" && resultado.bloqueo) volver(formData, "error", resultado.bloqueo);
   }
 
   const { error } = await supabase.from("austral_recomendaciones").upsert(
@@ -271,7 +280,8 @@ export async function ubicarAlumno(formData: FormData) {
   if (enCurso && enCurso !== proyectoId) volver(formData, "error", `${alumno.nombre} tiene una propuesta en curso para otro proyecto. Resolvela desde Recomendaciones.`);
   const resultado = datos.resultados.find((r) => r.alumno.id === personaId && r.proyecto.id === proyectoId);
   // Con una propuesta aceptada para este mismo proyecto, su lugar ya está descontado de las vacantes.
-  if (!resultado || (!enCurso && resultado.proyecto.vacantes <= 0)) volver(formData, "error", "Ese proyecto ya no busca integrantes o no tiene lugares libres.");
+  if (!resultado || (!enCurso && resultado.proyecto.vacantes <= 0)) volver(formData, "error", "Ese proyecto ya no busca integrantes o no tiene lugares libres (llegó a lo que busca o al máximo por grupo).");
+  if (resultado.bloqueo) volver(formData, "error", resultado.bloqueo);
 
   const ahora = new Date().toISOString();
   const { error } = await supabase.from("austral_recomendaciones").upsert(

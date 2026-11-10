@@ -22,9 +22,10 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
     .filter((a) => !busqueda || a.nombre.toLowerCase().includes(busqueda) || (a.carrera ?? "").toLowerCase().includes(busqueda))
     .filter((a) => !filtro || a.habilidades.some((h) => h.categoria === filtro));
   const nombreProyecto = new Map(datos.todosLosProyectos.map((p) => [p.id, p.nombre]));
-  // Opciones para ubicar a cada alumno: los proyectos que buscan integrantes y tienen lugar, del más al menos compatible.
+  // Opciones para ubicar a cada alumno: los proyectos que buscan integrantes, tienen lugar y donde sumarlo no rompe las
+  // restricciones de los grupos (máximo de integrantes y mínimo de carreras), del más al menos compatible.
   const opcionesDe = (alumnoId: string) =>
-    datos.resultados.filter((r) => r.alumno.id === alumnoId).sort((x, y) => y.puntaje - x.puntaje);
+    datos.resultados.filter((r) => r.alumno.id === alumnoId && !r.bloqueo).sort((x, y) => y.puntaje - x.puntaje);
   const volver = `/austral/matching/alumnos${busqueda || filtro ? `?${new URLSearchParams({ ...(busqueda && { q: busqueda }), ...(filtro && { categoria: filtro }) })}` : ""}`;
 
   return (
@@ -95,7 +96,7 @@ export default async function Alumnos({ searchParams }: PageProps<"/austral/matc
                         <BotonUbicar nombre={a.nombre} />
                       </form>
                     ) : (
-                      <span className="text-sm text-[#666]">Ningún proyecto con lugar</span>
+                      <span className="text-sm text-[#666]">Ningún proyecto con lugar que cumpla las restricciones</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">

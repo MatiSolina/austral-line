@@ -1,7 +1,7 @@
 // GRUPO AUSTRAL — junta de la base todo lo que usa el matching y lo convierte al formato del motor.
 // Carrera, intereses y "sobre mí" vienen del grupo Alumnos (solo lectura); el resto, de las tablas austral_.
 import type { createClient } from "@/lib/supabase/server";
-import { alertas, evaluar, planSugerido, type Alumno, type Categoria, type HabilidadConNivel, type Pesos, type Proyecto } from "./_motor";
+import { alertas, alertasGrupos, evaluar, planSugerido, type Alumno, type Categoria, type HabilidadConNivel, type Pesos, type Proyecto, type Restricciones } from "./_motor";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -28,7 +28,7 @@ export async function cargarMatching(supabase: Supabase) {
   const [habilidades, config, personas, integrantes, carreras, intereses, perfiles, perfilHabilidades, proyectos, gruposIntereses, necesidades, buscadas, decisiones, temas] =
     consultas.map((c) => c.data) as [
       { id: number; nombre: string; categoria: Categoria }[],
-      { peso_habilidades: number; peso_complementariedad: number; peso_intereses: number; peso_formacion: number; peso_disponibilidad: number; peso_equilibrio: number; puntaje_minimo: number },
+      { peso_habilidades: number; peso_complementariedad: number; peso_intereses: number; peso_formacion: number; peso_disponibilidad: number; peso_equilibrio: number; puntaje_minimo: number; integrantes_min: number; integrantes_max: number; carreras_min: number },
       { id: string; nombre: string }[],
       { proyecto_id: string; persona_id: string }[],
       { persona_id: string; alumnos_carreras_maestro: { nombre: string } }[],
@@ -71,12 +71,16 @@ export async function cargarMatching(supabase: Supabase) {
   // Con una propuesta aceptada sin confirmar, el alumno sale de la lista de candidatos para los demás proyectos.
   const libres = sinGrupo.filter((a) => !conPropuesta.has(a.id));
 
+  const restricciones: Restricciones = { integrantesMin: config.integrantes_min, integrantesMax: config.integrantes_max, carrerasMin: config.carreras_min };
   const necesidadDe = new Map(necesidades.map((n) => [n.proyecto_id, n]));
   const nombreDe = new Map(personas.map((p) => [p.id, p.nombre]));
   const todosLosProyectos = proyectos.map((p) => {
     const n = necesidadDe.get(p.id);
     const suyos = integrantes.filter((i) => i.proyecto_id === p.id).map((i) => i.persona_id);
-    const propuestos = aceptadas.filter((d) => d.proyecto_id === p.id).length;
+    const suyosPropuestos = aceptadas.filter((d) => d.proyecto_id === p.id).map((d) => d.persona_id);
+    const propuestos = suyosPropuestos.length;
+    const ocupados = suyos.length + propuestos;
+    const carreras = [...new Set([...suyos, ...suyosPropuestos].map((id) => carreraDe.get(id)).filter((c): c is string => !!c))];
     const proyecto: Proyecto = {
       id: p.id,
       nombre: p.nombre,
@@ -85,7 +89,10 @@ export async function cargarMatching(supabase: Supabase) {
       integrantes: suyos.map((id) => ({ nombre: nombreDe.get(id) ?? "Integrante", carrera: carreraDe.get(id) ?? null, habilidades: habilidadesDe(id) })),
       disponibilidad: n?.disponibilidad ?? [],
       modalidad: n?.modalidad ?? null,
-      vacantes: n ? Math.max(0, n.integrantes_necesarios - suyos.length - propuestos) : 0,
+      // El grupo busca hasta lo que pidió, sin pasarse del máximo por grupo que fijó el admin.
+      vacantes: n ? Math.max(0, Math.min(n.integrantes_necesarios, restricciones.integrantesMax) - ocupados) : 0,
+      ocupados,
+      carreras,
     };
     return { ...p, necesidad: n ?? null, proyecto, propuestos };
   });
@@ -100,12 +107,13 @@ export async function cargarMatching(supabase: Supabase) {
     disponibilidad: config.peso_disponibilidad,
     equilibrio: config.peso_equilibrio,
   };
-  const candidatos = libres.flatMap((a) => buscando.map((p) => evaluar(a, p, pesos)));
-  const plan = planSugerido(candidatos, config.puntaje_minimo);
+  const candidatos = libres.flatMap((a) => buscando.map((p) => evaluar(a, p, pesos, restricciones.carrerasMin)));
+  const plan = planSugerido(candidatos, config.puntaje_minimo, restricciones.carrerasMin);
   // Quien tiene una propuesta en curso se sigue mostrando, pero solo en el proyecto al que fue propuesto.
   const enCurso = sinGrupo.flatMap((a) => {
     const p = todosLosProyectos.find((x) => x.id === conPropuesta.get(a.id));
-    return p ? [evaluar(a, p.proyecto, pesos)] : [];
+    // Su lugar ya está reservado y su carrera ya cuenta en el grupo: no se le aplica el bloqueo de carreras.
+    return p ? [{ ...evaluar(a, p.proyecto, pesos), bloqueo: null }] : [];
   });
   const resultados = [...candidatos, ...enCurso];
 
@@ -114,6 +122,7 @@ export async function cargarMatching(supabase: Supabase) {
     temas: new Map(temas.map((t) => [t.id, t.nombre])),
     config,
     pesos,
+    restricciones,
     sinGrupo,
     libres,
     conPropuesta,
@@ -125,7 +134,10 @@ export async function cargarMatching(supabase: Supabase) {
     decisiones,
     nombreAlumno: (personaId: string) => nombreDe.get(personaId) ?? "Alumno",
     decisionDe: (personaId: string, proyectoId: string) => decisiones.find((d) => d.persona_id === personaId && d.proyecto_id === proyectoId),
-    alertas: alertas(libres, buscando, candidatos, config.puntaje_minimo),
+    alertas: [
+      ...alertasGrupos(todosLosProyectos.map((p) => ({ ...p.proyecto, buscaIntegrantes: p.necesidad?.estado === "buscando" })), restricciones),
+      ...alertas(libres, buscando, candidatos, config.puntaje_minimo),
+    ],
   };
 }
 
