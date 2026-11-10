@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireRol } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { FormularioNecesidades, FormularioQuitarTitular, FormularioSugerencia, FormularioTitular } from "./_components/formularios";
+import { FormularioAvisarEquipos, FormularioNecesidades, FormularioQuitarTitular, FormularioReenviarAviso, FormularioSugerencia, FormularioTitular } from "./_components/formularios";
+import { linkWhatsApp } from "./_avisos";
 
 const etapaNombre: Record<string, string> = {
   idea: "Idea", prototipo: "Prototipo", validacion: "Validación", crecimiento: "Crecimiento",
@@ -28,6 +29,32 @@ export default async function Compatibilidad() {
     revisionesResult, puntajesResult, decisionesResult, documentosResult, satisfaccionResult]) {
     if (resultado.error) throw resultado.error;
   }
+  // Avisos de la mentoría titular: integrantes de cada equipo, teléfonos de los mentores y lo que ya se avisó.
+  const [integrantesResult, alumnosResult, telefonosResult, avisosResult] = await Promise.all([
+    supabase.from("proyecto_integrantes").select("proyecto_id, persona_id"),
+    supabase.from("personas").select("id, nombre").neq("rol", "mentor"),
+    supabase.from("austral_contactos_mentores").select("mentor_id, telefono_contacto"),
+    supabase.from("austral_avisos_mentoria").select("tipo, proyecto_id, mentor_id, destinatario_id, estado, detalle, created_at")
+      .order("created_at", { ascending: false }),
+  ]);
+  for (const resultado of [integrantesResult, alumnosResult, telefonosResult, avisosResult]) {
+    if (resultado.error) throw resultado.error;
+  }
+  const integrantes = integrantesResult.data ?? [];
+  const nombrePersona = new Map((alumnosResult.data ?? []).map((p) => [p.id, p.nombre]));
+  const telefonoMentor = new Map((telefonosResult.data ?? []).map((t) => [t.mentor_id, t.telefono_contacto]));
+  const avisos = avisosResult.data ?? [];
+  const equipoDe = (proyectoId: string) => integrantes.filter((i) => i.proyecto_id === proyectoId)
+    .map((i) => nombrePersona.get(i.persona_id) ?? "Integrante");
+  const conIntegrantes = (proyectosResult.data ?? []).filter((p) => integrantes.some((i) => i.proyecto_id === p.id));
+  const sinTitular = conIntegrantes.filter((p) => !titularesResult.data?.some((t) => t.proyecto_id === p.id));
+  const integrantesAvisados = new Set(avisos.filter((a) => a.tipo === "equipo" && ["enviado", "simulado"].includes(a.estado) &&
+    titularesResult.data?.some((t) => t.proyecto_id === a.proyecto_id && t.mentor_id === a.mentor_id))
+    .map((a) => `${a.proyecto_id}:${a.destinatario_id}`));
+  const totalIntegrantes = integrantes.filter((i) => conIntegrantes.some((p) => p.id === i.proyecto_id)).length;
+  const estadoAviso: Record<string, string> = {
+    enviado: "Mail enviado", simulado: "Mail simulado (sin Resend configurado)", error: "No se pudo mandar el mail", sin_email: "Sin mail cargado",
+  };
   const proyectos = proyectosResult.data ?? [];
   const mentores = personasResult.data ?? [];
   const contactos = contactosResult.data ?? [];
@@ -74,6 +101,18 @@ export default async function Compatibilidad() {
       ].map(([numero, texto]) => <div key={texto}>
         <p className="font-serif text-2xl">{numero}</p><p className="text-xs text-[#666]">{texto}</p>
       </div>)}
+    </section>
+    <section className="space-y-3 border p-5">
+      <h2 className="font-serif text-xl">Aviso a los equipos</h2>
+      <p className="text-sm text-[#666]">
+        Cuando todos los proyectos con integrantes tengan mentor titular, podés mandarle un mail a cada integrante con el nombre y el contacto de su mentor.
+        {" "}{conIntegrantes.length - sinTitular.length} de {conIntegrantes.length} proyectos con integrantes tienen titular
+        {integrantesAvisados.size > 0 && ` · ${integrantesAvisados.size} de ${totalIntegrantes} integrantes ya avisados`}.
+      </p>
+      {conIntegrantes.length === 0 ? <p className="text-sm text-[#666]">Todavía no hay proyectos con integrantes.</p>
+        : sinTitular.length > 0 ? <p className="text-sm">Falta designar titular en: {sinTitular.map((p) => p.nombre).join(", ")}.</p>
+        : integrantesAvisados.size >= totalIntegrantes ? <p className="text-sm">Todos los integrantes ya recibieron el aviso de su mentor actual.</p>
+        : <FormularioAvisarEquipos integrantes={totalIntegrantes - integrantesAvisados.size} />}
     </section>
     <div className="space-y-8">{proyectos.map((proyecto) => {
       const [actual, anterior] = revisionesPorProyecto.get(proyecto.id) ?? [];
@@ -129,6 +168,22 @@ export default async function Compatibilidad() {
               <p>{nombreMentor.get(titularId) ?? "Mentor"}</p>
               <p className="font-serif text-2xl">{titular ? `${titular.porcentaje} %` : "Sin datos para calcular"}</p>
               {titular && <p className="text-[#666]">Coincide en: {titular.coincidencias.join(", ") || "ninguna necesidad cargada"}. Falta cubrir: {titular.faltantes.join(", ") || "ninguna"}.</p>}
+              {(() => {
+                const aviso = avisos.find((a) => a.tipo === "mentor" && a.proyecto_id === proyecto.id && a.mentor_id === titularId);
+                const whatsapp = linkWhatsApp(telefonoMentor.get(titularId), nombreMentor.get(titularId) ?? "", proyecto.nombre, equipoDe(proyecto.id));
+                return <div className="space-y-2 border-y py-3">
+                  <p className="text-xs text-[#666]">
+                    Aviso al mentor: {aviso ? `${estadoAviso[aviso.estado]} · ${new Date(aviso.created_at).toLocaleDateString("es-AR")}` : "todavía no se le avisó"}
+                    {aviso?.estado === "error" && aviso.detalle ? ` (${aviso.detalle})` : ""}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    {whatsapp
+                      ? <a href={whatsapp} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center border px-3 text-sm hover:bg-muted">Avisar por WhatsApp</a>
+                      : <span className="text-xs text-[#666]">Sin teléfono válido en Contactos de mentores para avisar por WhatsApp.</span>}
+                    <FormularioReenviarAviso proyectoId={proyecto.id} />
+                  </div>
+                </div>;
+              })()}
               <FormularioQuitarTitular proyectoId={proyecto.id} />
               {vinculados.length > 1 && <FormularioTitular proyectoId={proyecto.id} mentores={vinculados} actualId={titularId} />}
             </> : <>

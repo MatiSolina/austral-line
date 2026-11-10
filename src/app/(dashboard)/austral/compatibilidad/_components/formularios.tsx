@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { decidirSugerencia, designarTitular, quitarTitular, registrarNecesidades, type Resultado } from "../actions";
+import { avisarEquipos, decidirSugerencia, designarTitular, quitarTitular, reenviarAvisoMentor, registrarNecesidades, type Resultado } from "../actions";
 
 const inicial: Resultado = { ok: true, mensaje: "" };
 const campo = "mt-1 w-full border bg-background px-3 py-2 text-sm outline-none focus:border-foreground";
@@ -69,6 +69,31 @@ export function FormularioQuitarTitular({ proyectoId }: { proyectoId: string }) 
     <label className="flex items-center gap-2"><input type="checkbox" name="confirmado" required />Confirmo que quiero quitar al titular.</label>
     <button className="min-h-9 border px-3 disabled:opacity-50" disabled={pendiente}>Quitar titular</button>
     {estado.mensaje && <p role="status" className={estado.ok ? "text-[#666]" : "text-destructive"}>{estado.mensaje}</p>}
+  </form>;
+}
+
+export function FormularioReenviarAviso({ proyectoId }: { proyectoId: string }) {
+  const [estado, accion, pendiente] = useActionState(reenviarAvisoMentor, inicial);
+  return <form action={accion} className="flex flex-wrap items-center gap-3 text-sm">
+    <input type="hidden" name="proyecto_id" value={proyectoId} />
+    <button className="inline-flex min-h-9 items-center border px-3 hover:bg-muted disabled:opacity-50" disabled={pendiente}>
+      {pendiente ? "Enviando…" : "Reenviar aviso por mail"}
+    </button>
+    {estado.mensaje && <p role="status" className={estado.ok ? "text-[#666]" : "text-destructive"}>{estado.mensaje}</p>}
+  </form>;
+}
+
+export function FormularioAvisarEquipos({ integrantes }: { integrantes: number }) {
+  const [estado, accion, pendiente] = useActionState(avisarEquipos, inicial);
+  return <form action={accion} className="space-y-3 text-sm">
+    <label className="flex items-start gap-2">
+      <input className="mt-1" type="checkbox" name="confirmado" required />
+      Confirmo que quiero mandar un mail a cada integrante ({integrantes}) con el nombre y el contacto de su mentor titular.
+    </label>
+    <div className="flex flex-wrap items-center gap-3">
+      <button className={boton} disabled={pendiente}>{pendiente ? "Enviando…" : "Avisar a los equipos por mail"}</button>
+      {estado.mensaje && <p role="status" className={`text-sm ${estado.ok ? "text-[#666]" : "text-destructive"}`}>{estado.mensaje}</p>}
+    </div>
   </form>;
 }
 
