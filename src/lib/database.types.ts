@@ -1615,14 +1615,14 @@ isOneToOne: true
                   ]
                 },"mentores_match_pedidos": {
                   Row: {
-                    "alerta_revisada_at": string | null,"alerta_revisada_por": string | null,"aviso": string | null,"created_at": string,"id": string,"pedido_por": string | null,"proyecto_id": string
+                    "alerta_revisada_at": string | null,"alerta_revisada_por": string | null,"aviso": string | null,"created_at": string,"id": string,"manual": boolean,"pedido_por": string | null,"proyecto_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id": string
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"manual"?: boolean,"pedido_por"?: string | null,"proyecto_id": string
                   }
                   Update: {
-                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"pedido_por"?: string | null,"proyecto_id"?: string
+                    "alerta_revisada_at"?: string | null,"alerta_revisada_por"?: string | null,"aviso"?: string | null,"created_at"?: string,"id"?: string,"manual"?: boolean,"pedido_por"?: string | null,"proyecto_id"?: string
                   }
                   Relationships: [
                     {

@@ -83,6 +83,54 @@ async function decidir(formData: FormData) {
   redirect(`/mentores/match?ok=${encodeURIComponent(`Mentor asignado. Se ahorraron ${duracion(minutos_ahorrados)} frente a buscarlo a mano. ${aviso}`)}`);
 }
 
+// Asignar a mano un mentor que el agente no sugirió. Queda como una sugerencia aceptada (así el resto de la app
+// la trata igual), colgada de un pedido manual para que no cuente en las métricas del agente.
+async function asignarAMano(formData: FormData) {
+  "use server";
+  const coordinador = await requireRol();
+  const proyectoId = String(formData.get("proyecto_id"));
+  const mentorId = String(formData.get("mentor_id") ?? "");
+  const motivo = String(formData.get("motivo") ?? "").trim();
+  if (!mentorId) conError("Elegí qué mentor querés asignar.");
+  if (motivo.length < 5) conError("Para asignar un mentor a mano hace falta contar por qué lo elegís.");
+
+  const supabase = await createClient();
+  const [mentor, yaEsta] = await Promise.all([
+    supabase.from("personas").select("id").eq("id", mentorId).eq("rol", "mentor").maybeSingle(),
+    supabase.from("mentores_sugerencias").select("id").eq("proyecto_id", proyectoId).eq("mentor_id", mentorId)
+      .in("estado", ["aceptada", "pendiente"]),
+  ]);
+  if (mentor.error) throw mentor.error;
+  if (yaEsta.error) throw yaEsta.error;
+  if (!mentor.data) conError("Esa persona no es mentor.");
+  if (yaEsta.data!.length) conError("Ese mentor ya está asignado o sugerido para este proyecto: aceptalo desde la sugerencia.");
+
+  const { data: pedido, error } = await supabase
+    .from("mentores_match_pedidos")
+    .insert({ proyecto_id: proyectoId, pedido_por: coordinador.id, manual: true })
+    .select("id")
+    .single();
+  if (error) throw error;
+  const { error: errorAsignar } = await supabase.from("mentores_sugerencias").insert({
+    pedido_id: pedido.id,
+    proyecto_id: proyectoId,
+    mentor_id: mentorId,
+    afinidad: 0, // el agente no lo evaluó
+    motivo,
+    estado: "aceptada",
+    decidido_por: coordinador.id,
+    decidido_at: new Date().toISOString(),
+  });
+  if (errorAsignar) {
+    await supabase.from("mentores_match_pedidos").delete().eq("id", pedido.id);
+    throw errorAsignar;
+  }
+  revalidatePath("/mentores/match");
+  revalidatePath("/mentores");
+  const aviso = await avisarAsignacion(supabase, proyectoId, mentorId, await urlBase());
+  redirect(`/mentores/match?ok=${encodeURIComponent(`Mentor asignado a mano. ${aviso}`)}`);
+}
+
 async function calificar(formData: FormData) {
   "use server";
   const coordinador = await requireRol();
@@ -151,12 +199,15 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
     supabase.from("proyectos").select("id, nombre, descripcion, estado").order("nombre"),
     supabase.from("personas").select("id, nombre").eq("rol", "mentor"),
     supabase.from("mentores_sugerencias").select("*").order("afinidad", { ascending: false }),
-    supabase.from("mentores_match_pedidos").select("id, proyecto_id, aviso, alerta_revisada_at, created_at").order("created_at", { ascending: false }),
+    supabase.from("mentores_match_pedidos").select("id, proyecto_id, aviso, alerta_revisada_at, created_at, manual").order("created_at", { ascending: false }),
   ]);
   for (const r of [proyectos, mentores, sugerencias, pedidos]) if (r.error) throw r.error;
 
   const nombreProyecto = (id: string) => proyectos.data!.find((p) => p.id === id)?.nombre ?? "Proyecto";
-  const alertas = pedidos.data!.filter((x) => x.aviso && !x.alerta_revisada_at);
+  const pedidosAgente = pedidos.data!.filter((x) => !x.manual);
+  const pedidosManuales = new Set(pedidos.data!.filter((x) => x.manual).map((x) => x.id));
+  const esManual = (s: { pedido_id: string }) => pedidosManuales.has(s.pedido_id);
+  const alertas = pedidosAgente.filter((x) => x.aviso && !x.alerta_revisada_at);
   const nombre = (id: string) => mentores.data!.find((m) => m.id === id)?.nombre ?? "Mentor dado de baja";
   const pct = (parte: number, total: number) => (total ? `${Math.round((parte / total) * 100)}%` : "—");
   const decididas = sugerencias.data!.filter((s) => s.estado !== "pendiente");
@@ -165,12 +216,17 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
   const quitadas = decididas.filter((s) => s.estado === "quitada");
   const calificadas = aceptadas.filter((s) => s.satisfaccion !== null);
   const conMentor = new Set(decididas.filter((s) => s.estado === "aceptada").map((s) => s.proyecto_id));
+  // Las asignaciones a mano no son sugerencias del agente: no cuentan para medirlo.
+  const decididasAgente = decididas.filter((s) => !esManual(s));
+  const aceptadasAgente = aceptadas.filter((s) => !esManual(s));
+  const aMano = aceptadas.length - aceptadasAgente.length;
   const metricas = [
-    ["Sugerencias aceptadas", pct(aceptadas.length, decididas.length)],
+    ["Sugerencias aceptadas", pct(aceptadasAgente.length, decididasAgente.length)],
+    ["Asignados a mano", pct(aMano, aceptadas.length)],
     ["Hubo que cambiar mentor", pct(quitadas.length, aceptadas.length)],
-    ["Tiempo ahorrado", duracion(aceptadas.reduce((total, s) => total + (s.minutos_ahorrados ?? 0), 0))],
+    ["Tiempo ahorrado", duracion(aceptadasAgente.reduce((total, s) => total + (s.minutos_ahorrados ?? 0), 0))],
     ["Satisfacción", calificadas.length ? `★ ${(calificadas.reduce((t, s) => t + s.satisfaccion!, 0) / calificadas.length).toFixed(1)}` : "—"],
-    ["Pedidos al agente", pedidos.data!.length],
+    ["Pedidos al agente", pedidosAgente.length],
     ["Proyectos con mentor", `${conMentor.size} de ${proyectos.data!.length}`],
   ];
 
@@ -179,7 +235,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
       <h1 className="mb-2 font-serif text-2xl">Match proyecto–mentor</h1>
       <p className="mb-8 max-w-2xl text-sm text-[#666]">
         El agente lee la descripción del proyecto y los perfiles de los mentores y sugiere hasta 3. Son solo
-        sugerencias: nadie queda asignado hasta que lo aceptás.
+        sugerencias: nadie queda asignado hasta que lo aceptás. Si preferís a otro mentor, podés asignarlo a mano.
       </p>
       <Suspense><MensajeError searchParams={searchParams} /></Suspense>
 
@@ -210,7 +266,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
         </section>
       )}
 
-      <div className="mb-10 grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mb-10 grid grid-cols-2 gap-4 sm:grid-cols-4 xl:grid-cols-7">
         {metricas.map(([label, valor]) => (
           <Card key={label}>
             <CardHeader><CardTitle className="text-sm font-normal text-[#666]">{label}</CardTitle></CardHeader>
@@ -227,7 +283,10 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
           const asignados = deEste.filter((s) => s.estado === "aceptada");
           const anteriores = deEste.filter((s) => s.estado === "quitada");
           const pendientes = deEste.filter((s) => s.estado === "pendiente");
-          const aviso = pedidos.data!.find((x) => x.proyecto_id === p.id)?.aviso;
+          const aviso = pedidosAgente.find((x) => x.proyecto_id === p.id)?.aviso;
+          // Para asignar a mano: los que no están ya asignados ni esperando decisión en este proyecto.
+          const ocupados = new Set(deEste.filter((s) => s.estado === "aceptada" || s.estado === "pendiente").map((s) => s.mentor_id));
+          const libres = mentores.data!.filter((m) => !ocupados.has(m.id)).sort((a, b) => a.nombre.localeCompare(b.nombre));
           return (
             <section key={p.id} className="border bg-card p-6">
               <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
@@ -253,6 +312,7 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                   {asignados.map((s) => (
                     <li key={s.id} className="flex flex-wrap items-start gap-3">
                       <span className="font-medium">{nombre(s.mentor_id)}</span>
+                      {esManual(s) && <Badge variant="outline" title={s.motivo}>Asignado a mano</Badge>}
                       {s.minutos_ahorrados !== null && (
                         <span className="text-xs text-[#666]">⏱ se ahorraron {duracion(s.minutos_ahorrados)}</span>
                       )}
@@ -278,10 +338,27 @@ export default async function Match({ searchParams }: PageProps<"/mentores/match
                           <BotonEnviar size="sm" variant="destructive" enviando="Quitando…">Confirmar: quitar mentor</BotonEnviar>
                         </form>
                       </details>
+                      {esManual(s) && <p className="w-full text-xs text-[#666]">Por qué: {s.motivo}</p>}
                       {s.opinion && <p className="w-full text-xs text-[#666]">“{s.opinion}”</p>}
                     </li>
                   ))}
                 </ul>
+                {libres.length > 0 && (
+                  <details className="mt-3 text-[#666]">
+                    <summary className="cursor-pointer hover:text-primary">+ Asignar otro mentor a mano</summary>
+                    <form action={asignarAMano} className="mt-2 grid max-w-md gap-2">
+                      <input type="hidden" name="proyecto_id" value={p.id} />
+                      <select name="mentor_id" required defaultValue="" className="h-9 border bg-background px-2 text-sm text-primary">
+                        <option value="" disabled>Elegí un mentor</option>
+                        {libres.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                      </select>
+                      <textarea name="motivo" required minLength={5} rows={2} placeholder="¿Por qué este mentor? (obligatorio)"
+                        className="border bg-background px-3 py-2 text-sm text-primary outline-none focus-visible:border-ring" />
+                      <p className="text-xs">Le avisamos por mail al mentor y al equipo, igual que al aceptar una sugerencia.</p>
+                      <BotonEnviar size="sm" enviando="Asignando…">Asignar mentor</BotonEnviar>
+                    </form>
+                  </details>
+                )}
                 {anteriores.length > 0 && (
                   <p className="mt-3 text-xs text-[#666]">
                     Mentores anteriores: {anteriores.map((s) => `${nombre(s.mentor_id)} (${s.motivo_quitado})`).join(" · ")}
